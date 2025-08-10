@@ -1,0 +1,11 @@
+library(terra)
+
+# extract values 
+
+extract.values = function(lake.values, lake.object) {
+  
+  terra::extract(lake.values, lake.object)
+
+  return(lake.object)
+}
+
