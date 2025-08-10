@@ -1,0 +1,94 @@
+library(terra)
+library(viridis)
+library(ggplot2)
+ 
+
+file.list <- dir('../Documents/data/Lakes.2018/2018.17', full.names = TRUE)
+
+ lake.name = 'holder'
+ 
+ lake.year = 2019
+ 
+ image.number = 0
+ 
+ for(i in file.list) {
+  
+  
+   greenband.filename = dir(i, full.names = TRUE, 
+                            pattern = 'B03.tif')
+   
+   greenband_2 <- rast(greenband.filename)
+   
+   nirband.filename = dir(i, full.names = TRUE, 
+                            pattern = 'B08.tif')
+   
+   nirband_2 <- rast(nirband.filename)
+   
+   redband.filename = dir(i, full.names = TRUE, 
+                            pattern = 'B04.tif')
+   
+   redband_2 <- rast(redband.filename)
+   
+   #generate ndwi values
+   
+   test.ndwi <- create_ndwi_raster(greenband_2, nirband_2)
+   
+   #create binary raster using ndwi values
+   
+   binary.ndwi <- calc.binary(test.ndwi)
+   
+   #generate ndti values
+   
+   test.ndti <- calculate_ndti(redband_2, greenband_2)
+   
+   #combine ndti and ndwi into one raster
+   
+   mask.values <- create.mask(test.ndti,binary.ndwi)
+   
+   #get rid of inf 
+   
+   mask.values[is.infinite(mask.values)] = NA
+   
+   # sets value range
+   
+   mask.values[mask.values < -1] = NA
+   
+   mask.values[mask.values > -0.5] = NA
+   
+   # plots mask.values
+   
+   plot(mask.values, col = turbo(256))
+   
+   #lake polys added to mask.values
+   
+   combined.geo <- terra::project(mask.values, lakes.nz)
+   
+   crs(mask.values) == crs(combined.geo)
+   
+   crs(lakes.nz) == crs(combined.geo)
+   
+   #plot combined geo
+   
+   plot(combined.geo, col = turbo(256))
+   
+  image.number = image.number + 1
+  
+  #extract values
+  
+  extracted.data <- terra::extract(combined.geo, poly_raster.hawea)
+  
+  #removes NA
+  
+  extracted.data <- extracted.data %>% drop_na(Red)
+  
+  #save
+  
+  save(extracted.data, file = paste('/Users/maialippay/ndti_testing/data/', lake.name, '.', lake.year, '.', image.number, '.rds', sep = ''))
+
+ }
+ 
+ load('~/ndti_testing/data/lyndon.2024.5.rds')
+ 
+
+
+ 
