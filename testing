@@ -1,0 +1,13 @@
+library(terra)
+
+greenband_1 = rast('../Documents/data/HLSS30_2.0-20250617_204055/HLS.S30.T59GLL.2016003T223542.v2.0.B03.tif')
+plot(greenband_1)
+min(greenband_1)
+
+redband_1 = rast('../Documents/data/HLSS30_2.0-20250617_204055/HLS.S30.T59GLL.2016003T223542.v2.0.B04.tif')
+min(redband_1)
+
+test_ndti = calculate_ndti(redband_1, greenband_1)
+
+plot(test_ndti)
+min(test_ndti)
