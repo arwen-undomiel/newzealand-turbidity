@@ -1,0 +1,45 @@
+library(dplyr)
+library(tidyverse)
+library(lubridate)
+
+#count files
+
+coleridge.filelist = dir('data', pattern = 'coleridge', full.names = TRUE)
+
+coleridge.length = length(coleridge.filelist)
+
+coleridge.df = data.frame(matrix(nrow = coleridge.length, ncol = 3))
+
+#add file names to df
+
+coleridge.df[, 1] = coleridge.filelist
+
+for(i in 1:coleridge.length){
+  
+ coleridge.file = load(coleridge.filelist[i])
+ 
+ r = extracted.data
+  
+  if(nrow(r) > 100){
+    
+    r <- as.numeric(as.character(unlist(r$Red)))
+  
+    r.mean <- c(mean(r))
+    
+    coleridge.df[i,2] = r.mean
+    
+  }
+}
+
+coleridge.df <- coleridge.df %>% drop_na(X2)
+
+saveRDS(coleridge.df, '/Users/maialippay/ndti_testing/data/coleridge.df.rds')
+
+coleridge.df <- coleridge.df %>% filter(row_number() <= n()-1)
+
+View(coleridge.df)
+
+coleridge.df$X1
+
+
+
