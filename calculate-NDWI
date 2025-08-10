@@ -1,0 +1,21 @@
+#This code calculates Nomalized Difference Water Index (NDWI) values for 
+#Sentinel-2 imagery using Bands 3 and 8
+#This is based on https://www.tandfonline.com/doi/epdf/10.1080/19475705.2020.1782482?needAccess=true
+library(terra)
+
+
+create_ndwi_raster <- function(greenband, nirband) {
+  
+  ndwi = (greenband - nirband)/(greenband + nirband)
+  
+  return(ndwi)
+}
+ 
+
+#testing
+
+#greenband_2 <- rast('../Documents/data/HLSS30_2.0-20250617_204055/HLS.S30.T59GLL.2016003T223542.v2.0.B03.tif')
+#nirband_2 <- rast('../Documents/data/HLSS30_2.0-20250617_204055/HLS.S30.T59GLL.2016003T223542.v2.0.B08.tif')
+
+#test.ndwi = create_ndwi_raster(greenband_2, nirband_2)
+
