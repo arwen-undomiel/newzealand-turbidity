@@ -1,0 +1,16 @@
+#This code calculates Nomalized Difference Turbidty Index (NDTI) values for 
+#Sentinel-2 imagery using Bands 3 and 4
+#This is based on https://www.tandfonline.com/doi/epdf/10.1080/19475705.2020.1782482?needAccess=true
+
+calculate_ndti <- function(redband, greenband) {
+  
+  ndti = (redband - greenband)/(redband + greenband)
+  return(ndti)
+}
+
+#greenband_1 = rast('../Documents/data/HLSS30_2.0-20250617_204055/HLS.S30.T59GLL.2016003T223542.v2.0.B03.tif')
+
+#redband_1 = rast('../Documents/data/HLSS30_2.0-20250617_204055/HLS.S30.T59GLL.2016003T223542.v2.0.B04.tif')
+
+
+#test_ndti = calculate_ndti(redband_1, greenband_1)
