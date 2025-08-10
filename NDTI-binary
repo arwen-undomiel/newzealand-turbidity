@@ -1,0 +1,13 @@
+#This code calibrates NDTI values 
+
+calc.ndti = function(ndti) {
+  ndti[ndti > 1.0] = 0
+  ndti[ndti < 0.0] = 0
+  
+  ndti[ndti < 0.0] = 1
+  ndti[ndti > 0.0] = 1
+  
+  return(ndti)
+}
+
+calc.ndti(test_ndti)
