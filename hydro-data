@@ -1,0 +1,235 @@
+library(terra)
+library(sf)
+library(tidyverse)
+library(ggrepel)
+library(dplyr)
+
+f <- system.file("ex/lux.shp", package="terra")
+v <- vect(f)
+
+oceania.poly <- read_sf('../Downloads/hybas_lake_au_lev01-12_v1c/hybas_lake_au_lev03_v1c.shp')
+plot(oceania.poly$geometry)
+
+#label basins
+ggplot() +
+  geom_sf(
+    data = oceania.poly
+  ) +
+  geom_sf_label(
+    data = oceania.poly, 
+    aes(label = HYBAS_ID)
+  )
+
+#create vectors of nz basins 
+id.nz <- c(5030082270)
+
+
+#filtering areas of interest
+subset.nz <- oceania.poly %>% 
+  filter(HYBAS_ID %in% id.nz)
+
+plot(subset.nz$geometry)  
+
+lakes.poly <- read_sf('../Downloads/HydroLAKES_polys_v10_shp/HydroLAKES_polys_v10_shp/HydroLAKES_polys_v10.shp')
+
+#subset lakes by nz watershed basin 
+sf_use_s2(F)
+lakes.nz <- lakes.poly %>% st_intersection(st_make_valid(subset.nz$geometry))
+
+plot(lakes.nz$geometry)
+
+#turn spherical geo back on
+sf_use_s2(T)
+
+rivers.poly <- read_sf('../Downloads/HydroRIVERS_v10_au_shp/HydroRIVERS_v10_au_shp/HydroRIVERS_v10_au.shp')
+
+#subset rivers by nz watershed basin
+rivers.nz <- rivers.poly %>% st_intersection(st_make_valid(subset.nz$geometry))
+
+#create lake id
+
+id.hawea <- c(1704)
+id.wanaka <- c(1705)
+id.wakatipu <- c(1706)
+id.dunstan <- c(16682)
+id.coleridge <- c(16677)
+id.lyndon <- c(1427352)
+id.unknown <- c(185108)
+
+View(lakes.nz)
+
+
+#wanted lakes
+
+lakes.keep <- c(1704, 1705, 1706, 	
+                16677,16682,1427352,185108)
+
+lakes.rakaia <- c(16677, 1427352)
+
+lakes.dart <- c(1706, 185108)
+
+subset.rakaia.lakes <- filter(lakes.nz, Hylak_id %in% lakes.rakaia == T)
+
+subset.dart.lakes <- filter(lakes.nz, Hylak_id %in% lakes.dart == T)
+
+subset.lakes <- filter(lakes.nz, Hylak_id %in% lakes.keep == T)
+
+plot(subset.lakes)
+
+#find lakes
+
+subset.unknown <- filter(lakes.nz, Pour_lat < -44.60 & Pour_lat > -44.65 & Pour_long > 168.2 & Pour_long < 168.3)
+
+view(subset.unknown)
+
+plot(subset.unknown)
+
+
+#search lake nz by ID
+
+which(lakes.nz$Hylak_id == 16677)
+
+view(subset.lyndon)
+
+#create labels for named lakes
+
+#+
+  #ggrepel::geom_label_repel(
+   #data = lakes.nz,
+    #aes(label = Lake_name, geometry = geometry),
+    #stat = "sf_coordinates",
+    #min.segment.length = 0
+  #)
+
+View(id.hawea)
+
+xlim <- c(168.2,169)
+ylim <- c(-44.5, -45.4)
+  
+
+#display data
+
+ggplot() + 
+  geom_sf(
+    data = rivers.nz, 
+    aes(color = "rivers"),
+    lwd = log1p(rivers.nz$DIS_AV_CMS) - 0.95*log1p(rivers.nz$DIS_AV_CMS)
+  ) +
+  geom_sf(
+    data = subset.nz, 
+    color = "black",
+    fill = NA,
+    lwd = 0.35
+  ) + 
+  geom_sf(
+    data = lakes.nz,
+    aes(color = "lakes"),
+  ) + scale_color_manual(
+    name = "color", 
+    values = c("rivers" = "blue", "lakes" = "green"),
+    labels = c("lakes", "rivers")
+  ) + 
+  guides(
+    color = guide_legend(override.aes = list(fill = c("green", "blue")))
+  )+
+  ggrepel::geom_label_repel(
+    data = subset.lakes,
+    aes(label = Lake_name, geometry = geometry),
+    stat = "sf_coordinates",
+    min.segment.length = 0
+  )  + xlab("Latitude") + ylab("Longitude") + ggtitle("Site Map") + theme(plot.title = element_text(hjust = 0.5, face = 'bold'))  
+#coord_sf(xlim, ylim) 
+
+# return name of lake by ID number 
+
+lakes.nz$Lake_name[lakes.nz$Hylak_id==16682]
+
+# assign name by ID number 
+
+lakes.nz$Lake_name[14] = "Coleridge"
+lakes.nz$Lake_name[19] = "Dunstan"
+lakes.nz$Lake_name[152] = "Lyndon"
+lakes.nz$Lake_name[61] = "Unknown"
+
+plot(subset.lyndon)
+
+View(lakes.nz)
+
+
+#create lake subsets
+
+subset.wanaka <- filter(lakes.nz, Hylak_id %in% id.wanaka == T)
+
+subset.hawea <- filter(lakes.nz, Hylak_id %in% id.hawea == T)
+
+subset.dunstan <- filter(lakes.nz, Hylak_id %in% id.dunstan == T)
+
+subset.wakatipu <- filter(lakes.nz, Hylak_id %in% id.wakatipu == T)
+
+subset.coleridge <- filter(lakes.nz, Hylak_id %in% id.coleridge == T)
+
+subset.lyndon <- filter(lakes.nz, Hylak_id %in% id.lyndon == T)
+
+subset.unknown <- subset.lyndon <- filter(lakes.nz, Hylak_id %in% id.unknown == T)
+
+#////////////////////////////////////////////////////////////////////////
+
+# change hawea to spatial vector
+
+template.hawea <- rast(vect(subset.hawea$geometry),res=0.005)
+
+poly_raster.hawea <- rasterize(vect(subset.hawea$geometry), template.hawea)
+
+poly_raster.hawea <- as.polygons(poly_raster.hawea)
+
+# change wanaka to spatial vector
+
+template.wanaka <- rast(vect(subset.wanaka$geometry),res=0.005)
+
+poly_raster.wanaka <- rasterize(vect(subset.wanaka$geometry), template.wanaka)
+
+poly_raster.wanaka <- as.polygons(poly_raster.wanaka)
+
+# change dunstan to spatial vector
+
+template.dunstan <- rast(vect(subset.dunstan$geometry),res=0.005)
+
+poly_raster.dunstan <- rasterize(vect(subset.dunstan$geometry), template.dunstan)
+
+poly_raster.dunstan <- as.polygons(poly_raster.dunstan)
+
+# change wakatipu to spatial vector
+
+template.wakatipu <- rast(vect(subset.wakatipu$geometry),res=0.005)
+
+poly_raster.wakatipu <- rasterize(vect(subset.wakatipu$geometry), template.wakatipu)
+
+poly_raster.wakatipu <- as.polygons(poly_raster.wakatipu)
+
+#change colerdige to spatial vector
+
+# change dunstan to spatial vector
+
+template.coleridge <- rast(vect(subset.coleridge$geometry),res=0.005)
+
+poly_raster.coleridge <- rasterize(vect(subset.coleridge$geometry), template.coleridge)
+
+poly_raster.coleridge <- as.polygons(poly_raster.coleridge)
+
+#change lyndon to spatial vector
+
+template.lyndon <- rast(vect(subset.lyndon$geometry),res=0.005)
+
+poly_raster.lyndon <- rasterize(vect(subset.lyndon$geometry), template.lyndon)
+
+poly_raster.lyndon <- as.polygons(poly_raster.lyndon)
+
+#change unknown to spatial vector
+
+template.unknown <- rast(vect(subset.unknown$geometry),res=0.005)
+
+poly_raster.unknown <- rasterize(vect(subset.unknown$geometry), template.unknown)
+
+poly_raster.unknown <- as.polygons(poly_raster.unknown)
+
+
