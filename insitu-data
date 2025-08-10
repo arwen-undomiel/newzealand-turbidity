@@ -1,0 +1,835 @@
+library(terra)
+library(ggplot2)
+library(readxl)
+library(tidyverse)
+library(plotly)
+library(lubridate)
+library(dplyr)
+library(tidyr)
+
+
+lake.lawa <- read_xlsx('../Downloads/lawa-lake-monitoring-data-2004-2023_statetrendtli-results_sep2024.xlsx')
+
+clutha.niwa.fnu <- read.csv(skip = 1, file = '../Downloads/DataSetExport-Turbidity (Form Neph).NRWQN@DN4-Instantaneous-_FNU-20250625063131.csv')
+clutha.niwa.ntu <- read.csv('../Downloads/DataSetExport-Turbidity (Nephelom).NRWQN@DN4-Instantaneous-_NTU-20250625063751.csv')
+
+#plot FNU values 
+
+(clutha.niwa.fnu[2,2])
+
+plot(clutha.niwa.fnu[,2])
+
+#plot both rows
+
+#plot(y=clutha.niwa.fnu[,2],x=clutha.niwa.fnu[,1])
+
+
+# read data in
+
+in.situ <- read.csv('data/LAWA_RiverWQ_MonitoringData_South_ Island_2004-2023_Version_2.csv')
+
+View(in.situ)
+
+# clutha data
+
+clutha.id <- c("Clutha at Luggate Br.", "Clutha at Balclutha", "Clutha at Millers Flat")
+
+subset.clutha <- filter(in.situ, SiteID %in% clutha.id)
+
+View(subset.clutha.turbidity.2)
+
+subset.clutha.turbidity <- filter(subset.clutha, Indicator %in% "Turbidity")
+
+
+# dart data 
+
+dart.id <- c("Dart River at The Hillocks")
+
+subset.dart <- filter(in.situ, SiteID %in% dart.id)
+
+subset.dart.turbidity <- filter(subset.dart, Indicator %in% "Turbidity")
+
+View(subset.dart.turbidity)
+
+
+# rakaia data 
+
+rakaia.id <- c("Rakaia River Gorge 50m d/s recorder", "Rakaia River north bank d/s SH1")
+
+subset.rakaia <- filter(in.situ, SiteID %in% rakaia.id)
+
+subset.rakaia.turbidity <- filter(subset.rakaia, Indicator %in% "Turbidity")
+
+View(subset.rakaia.turbidity)
+
+#/////////////////////////////////////////////////////////////////////////////////////////////////
+
+# get rid of clutha NA variables
+
+subset.clutha.turbidity.2 <- subset.clutha.turbidity %>% drop_na(AgencyValue)
+
+# change clutha into date format
+
+clutha.time.outlier <- mdy_hm(subset.clutha.outlier$SampleDateTime)
+
+clutha.time <- mdy_hm(subset.clutha.turbidity.2$SampleDateTime)
+
+subset.clutha.turbidity.2$SampleDateTime <- mdy_hm(subset.clutha.turbidity.2$SampleDateTime)
+
+# create clutha subset without outlier 
+
+View(subset.clutha.turbidity.2)
+
+subset.clutha.outlier <- subset.clutha.turbidity.2[-c(175,454),]
+
+# plot clutha data without outlier
+
+plot(y = subset.clutha.outlier$AgencyValue, x = clutha.time.outlier, 
+     main = "Clutha River Turbidity (2004-2023)", 
+     xlab = "Years", ylab = "Turbidity (FNU)",
+     abline(lm(subset.clutha.outlier$AgencyValue ~ clutha.time.outlier)))
+
+#plot according to satellite date range
+
+clutha.river.cut <- subset.clutha.turbidity.2 %>% filter(between(subset.clutha.turbidity.2$SampleDateTime, as.Date('2016-01-01'), as.Date('2023-12-31')))  
+
+plot(y = clutha.river.cut$AgencyValue, 
+     x = clutha.river.cut$SampleDateTime,  main = "Clutha River Turbidity (2016-2023)", 
+     xlab = "Years", ylab = "Turbidity (FNU)",
+     abline(lm(clutha.river.cut$AgencyValue ~ clutha.river.cut$SampleDateTime)))
+
+# plot clutha data with outlier
+
+plot(y = subset.clutha.turbidity.2$AgencyValue, 
+     x = clutha.time,  main = "Clutha River Turbidity (2004-2023)", 
+     xlab = "Years", ylab = "Turbidity (FNU)",
+     abline(lm(subset.clutha.turbidity.2$AgencyValue ~ clutha.time)))
+
+#////////////////////////////////////////////////////////////////////////////////////////////////////////
+  
+# get rid of dart NA variables
+
+subset.dart.turbidity.2 <- subset.dart.turbidity %>% drop_na(AgencyValue)
+
+# change dart into date format
+
+dart.time <- mdy_hm(subset.dart.turbidity.2$SampleDateTime)
+
+subset.dart.turbidity.2$SampleDateTime <- mdy_hm(subset.dart.turbidity.2$SampleDateTime)
+
+# plot dart data with outliers
+
+plot(y = subset.dart.turbidity.2$AgencyValue, 
+     x = dart.time,  main = "Dart River Turbidity (2006-2023)", 
+     xlab = "Years", ylab = "Turbidity (FNU)", 
+     abline(lm(subset.dart.turbidity.2$AgencyValue ~ dart.time)))
+
+# create dart subset without outliers
+
+subset.dart.outlier <- subset.dart.turbidity.2[-c(25, 88),]
+
+#change dart outlier into date format
+
+dart.time.outlier <- mdy_hm(subset.dart.outlier$SampleDateTime)
+
+# plot dart data without outliers
+
+plot(y = subset.dart.outlier$AgencyValue, 
+     x = dart.time.outlier, main = "Dart River Turbidity (2006-2023)", 
+     xlab = "Years", ylab = "Turbidity (FNU)",
+     abline(lm(subset.dart.outlier$AgencyValue ~ dart.time.outlier)))
+
+#satellite constraints
+
+dart.river.cut <- subset.dart.turbidity.2 %>% filter(between(subset.dart.turbidity.2$SampleDateTime, as.Date('2016-01-01'), as.Date('2023-12-31')))  
+
+plot(y = dart.river.cut$AgencyValue, 
+     x = dart.river.cut$SampleDateTime,  main = "Dart River Turbidity (2016-2024)", 
+     xlab = "Years", ylab = "Turbidity (FNU)",
+     abline(lm(dart.river.cut$AgencyValue ~ dart.river.cut$SampleDateTime)))
+
+View(subset.rakaia.turbidity.2)
+#//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+# get rid of rakaia NA variables
+
+subset.rakaia.turbidity.2 <- subset.rakaia.turbidity %>% drop_na(AgencyValue)
+
+# change rakaia into date format
+
+rakaia.time <- mdy_hm(subset.rakaia.turbidity.2$SampleDateTime)
+
+subset.rakaia.turbidity.2$SampleDateTime <- mdy_hm(subset.rakaia.turbidity.2$SampleDateTime)
+
+# plot rakaia data with outliers
+
+plot(y = subset.rakaia.turbidity.2$AgencyValue, x = rakaia.time,  
+     main = "Rakaia River Turbidity (2004-2023)", xlab = "Years", ylab = "Turbidity (FNU)",
+     abline(lm(subset.rakaia.turbidity.2$AgencyValue ~ rakaia.time)))
+
+# create rakaia subset without outliers
+
+subset.rakaia.outlier <- subset.rakaia.turbidity.2[-c(149, 72, 272, 314),]
+
+#change rakaia outlier into date format
+
+rakaia.time.outlier <- mdy_hm(subset.rakaia.outlier$SampleDateTime)
+
+# plot rakaia data without outliers
+
+plot(y = subset.rakaia.outlier$AgencyValue, x = rakaia.time.outlier, 
+     main = "Rakaia River Turbidity (2004-2023)", 
+     xlab = "Years", ylab = "Turbidity (FNU)",
+     abline(lm(subset.rakaia.outlier$AgencyValue ~ rakaia.time.outlier)))
+
+View(subset.rakaia.turbidity.2)
+
+#satellite constraint
+
+rakaia.river.cut <- subset.rakaia.turbidity.2 %>% filter(between(subset.rakaia.turbidity.2$SampleDateTime, mdy_hm('2016-01-01 1:00'), mdy_hm('2023-12-31 1:00')))  
+
+plot(y = rakaia.river.cut$AgencyValue, 
+     x = rakaia.river.cut$SampleDateTime,  main = "Rakaia River Turbidity (2016-2024)", 
+     xlab = "Years", ylab = "Turbidity (FNU)",
+     abline(lm(rakaia.river.cut$AgencyValue ~ rakaia.river.cut$SampleDateTime)))
+
+
+#///////////////////////////////////////////////////////////////////////////////////////////////////
+
+#data analysis clutha
+
+clutha.analysis <- subset.clutha.turbidity.2$AgencyValue
+
+clutha.analysis <- as.numeric(as.character(clutha.analysis))
+
+mode(clutha.analysis)
+
+# data analysis dart
+
+dart.analysis <- subset.dart.turbidity.2$AgencyValue
+
+dart.analysis <- as.numeric(as.character(dart.analysis))
+
+mode(dart.analysis)
+
+# data analysis rakaia
+
+rakaia.analysis <- subset.rakaia.turbidity.2$AgencyValue
+
+rakaia.analysis <- as.numeric(as.character(rakaia.analysis))
+
+mode(rakaia.analysis)
+
+#///////////////////////////////////////////////////////////////////////////////
+
+#data analysis clutha no outlier
+
+clutha.analysis.2 <- subset.clutha.outlier$AgencyValue
+
+clutha.analysis.2 <- as.numeric(as.character(clutha.analysis.2))
+
+mode(clutha.analysis.2)
+
+# data analysis dart no outlier
+
+dart.analysis.2 <- subset.dart.outlier$AgencyValue
+
+dart.analysis.2 <- as.numeric(as.character(dart.analysis.2))
+
+mode(dart.analysis.2)
+
+# data analysis rakaia no outlier
+
+rakaia.analysis.2 <- subset.rakaia.outlier$AgencyValue
+
+rakaia.analysis.2 <- as.numeric(as.character(rakaia.analysis.2))
+
+mode(rakaia.analysis.2)
+
+#//////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+#create in situ stats dataframe
+
+site.name <- c('Clutha River', 'Dart River', 'Rakaia River')
+site.mean <- c(mean(clutha.analysis), mean(dart.analysis), mean(rakaia.analysis))
+site.median <- c(median(clutha.analysis), median(dart.analysis), median(rakaia.analysis))
+site.sd <- c(sd(clutha.analysis), sd(dart.analysis), sd(rakaia.analysis))
+site.iqr <- c(IQR(clutha.analysis), IQR(dart.analysis), IQR(rakaia.analysis))
+site.mad <- c(mad(clutha.analysis), mad(dart.analysis), mad(rakaia.analysis))
+site.min <- c(min(clutha.analysis), min(dart.analysis), min(rakaia.analysis))
+site.max <- c(max(clutha.analysis), max(dart.analysis), max(rakaia.analysis))
+
+site.df <- data.frame(site.name, site.mean, site.median, site.sd, site.iqr, 
+                      site.mad, site.min, site.max)
+
+# create in situ stats data frame without outliers
+
+print(site.df)
+
+site.name.2 <- c('Clutha River', 'Dart River', 'Rakaia River')
+site.mean.2 <- c(mean(clutha.analysis.2), mean(dart.analysis.2), mean(rakaia.analysis.2))
+site.median.2 <- c(median(clutha.analysis.2), median(dart.analysis.2), median(rakaia.analysis.2))
+site.sd.2 <- c(sd(clutha.analysis.2), sd(dart.analysis.2), sd(rakaia.analysis.2))
+site.iqr.2 <- c(IQR(clutha.analysis.2), IQR(dart.analysis.2), IQR(rakaia.analysis.2))
+site.mad.2 <- c(mad(clutha.analysis.2), mad(dart.analysis.2), mad(rakaia.analysis.2))
+site.min.2 <- c(min(clutha.analysis.2), min(dart.analysis.2), min(rakaia.analysis.2))
+site.max.2 <- c(max(clutha.analysis.2), max(dart.analysis.2), max(rakaia.analysis.2))
+
+site.df.2 <- data.frame(site.name.2, site.mean.2, site.median.2, site.sd.2, site.iqr.2, 
+                      site.mad.2, site.min.2, site.max.2)
+
+#without outliers df
+
+table <- table(site.df$site.name, site.df$site.mean, site.df$site.median, site.df$site.sd,
+               site.df$site.iqr, site.df$site.mad, site.df$site.min, site.df$site.max)
+
+#including outliers df
+
+table.2 <- table(site.df.2$site.name.2, site.df.2$site.mean.2, site.df.2$site.median.2, 
+                 site.df.2$site.sd.2, site.df.2$site.iqr.2, 
+                 site.df.2$site.mad.2, site.df.2$site.min.2, site.df.2$site.max.2)
+print(site.df.2)
+
+print(site.df)
+
+#///////////////////////////////////////////////////////////////////////////////////////////////
+
+clutha <- subset.clutha.turbidity.2 %>% 
+  mutate(Rivers = "Clutha (Non-Glacial)")
+
+dart <- subset.dart.turbidity.2 %>% 
+  mutate(Rivers = "Dart (Glacial)")
+
+rakaia <- subset.rakaia.turbidity.2 %>% 
+  mutate(Rivers = "Rakaia (Glacial + Proglacial Lake)")
+
+big.data <- bind_rows(list(clutha, dart, rakaia)) %>% group_by(Rivers)
+
+big.data.time <- big.data %>%
+  mutate(SampleDateTime = mdy_hm(SampleDateTime)) %>% drop_na(AgencyValue)
+ 
+big.data.time$Rivers <- factor(big.data.time$Rivers, levels = c("Dart (Glacial)", "Rakaia (Glacial + Proglacial Lake)", "Clutha (Non-Glacial)"))
+
+big.data.fixed <- as.numeric(as.character(big.data.time$AgencyValue))
+
+big.data.time$AgencyValue <- big.data.fixed
+
+View(big.data.time)
+
+#plot big data
+
+ggplot( data = big.data.time,
+        alpha = 0.5,
+        position = "identity",
+        aes(x = big.data.time$SampleDateTime , y = big.data.time$AgencyValue, color = Rivers,
+            group = Rivers, fill = Rivers) 
+        ) +
+  geom_area() + xlab("Time") + ylab("Turbidity (FNU)") + ylim(0.0,100) + ggtitle("In Situ Data Comparison") +
+  geom_smooth(method = lm) + theme(axis.text=element_text(size=14),
+                                  axis.title=element_text(size=16,face="bold"), 
+                                  legend.text = element_text(size=14),
+                                  legend.title = element_text(size=1),
+                                  plot.title = element_text(hjust = 0.5, face = 'bold'))
+
+View(big.data)
+
+
+#geom_smooth(method=lm, se=FALSE
+
+#//////////////////////////////////////////////////////////////////////////////////////////
+
+#big data without outliers
+
+clutha.2 <- subset.clutha.outlier %>% 
+  mutate(Rivers = "Clutha")
+
+dart.2 <- subset.dart.outlier %>% 
+  mutate(Rivers = "Dart")
+
+rakaia.2 <- subset.rakaia.outlier %>% 
+  mutate(Rivers = "Rakaia")
+
+big.data.2 <- bind_rows(list(clutha.2, dart.2, rakaia.2)) %>% group_by(Rivers)
+
+big.data.time.2 <- big.data.2 %>%
+  mutate(SampleDateTime = mdy_hm(SampleDateTime)) %>% drop_na(AgencyValue)
+
+big.data.time.2$Rivers <- factor(big.data.time.2$Rivers, 
+                                 levels = c("Dart", "Rakaia", "Clutha"))
+
+big.data.fixed.2 <- as.numeric(as.character(big.data.time.2$AgencyValue))
+
+big.data.time.2$AgencyValue <- big.data.fixed.2
+
+View(big.data.time)
+
+#plot big data
+
+ggplot( data = big.data.time.2,
+        alpha = 0.5,
+        position = "identity",
+        aes(x = big.data.time.2$SampleDateTime, 
+            y = big.data.time.2$AgencyValue, color = Rivers,
+            group = Rivers, fill = Rivers) 
+) +
+  geom_area() + xlab("Time") + ylab("Turbidity (FNU)") + ylim(0.0,100) +
+  geom_smooth(method = lm) + theme(axis.text=element_text(size=12),
+                                    axis.title=element_text(size=14,face="bold"))
+
+
+#////////////////////////////////////////////////////////////////////////////////////////////
+
+subset.clutha.turbidity.2$SampleDateTime <- clutha.time
+
+subset.dart.turbidity.2$SampleDateTime <- dart.time
+
+subset.rakaia.turbidity.2$SampleDateTime <- rakaia.time
+
+subset.clutha.outlier$SampleDateTime <- clutha.time.outlier
+
+subset.dart.outlier$SampleDateTime <- dart.time.outlier
+
+subset.rakaia.outlier$SampleDateTime <- rakaia.time.outlier
+
+
+#seasonal clutha data
+
+clutha.jan <- subset (subset.clutha.turbidity.2, 
+                      month(subset.clutha.turbidity.2$SampleDateTime) == 01) 
+clutha.feb <- subset (subset.clutha.turbidity.2, 
+                      month(subset.clutha.turbidity.2$SampleDateTime) == 02)
+clutha.mar <-subset (subset.clutha.turbidity.2, 
+                     month(subset.clutha.turbidity.2$SampleDateTime) == 03)
+clutha.apr <- subset (subset.clutha.turbidity.2, 
+                      month(subset.clutha.turbidity.2$SampleDateTime) == 04)
+clutha.may <- subset (subset.clutha.turbidity.2, 
+                      month(subset.clutha.turbidity.2$SampleDateTime) == 05)
+clutha.jun <- subset (subset.clutha.turbidity.2, 
+                      month(subset.clutha.turbidity.2$SampleDateTime) == 06)
+clutha.jul<- subset (subset.clutha.turbidity.2, 
+                     month(subset.clutha.turbidity.2$SampleDateTime) == 07)
+clutha.aug <- subset (subset.clutha.turbidity.2, 
+                      month(subset.clutha.turbidity.2$SampleDateTime) == 08)
+clutha.sep <- subset (subset.clutha.turbidity.2, 
+                      month(subset.clutha.turbidity.2$SampleDateTime) == 09)
+clutha.oct <- subset (subset.clutha.turbidity.2, 
+                      month(subset.clutha.turbidity.2$SampleDateTime) == 10)
+clutha.nov <- subset (subset.clutha.turbidity.2, 
+                      month(subset.clutha.turbidity.2$SampleDateTime) == 11)
+clutha.dec <- subset (subset.clutha.turbidity.2, 
+                      month(subset.clutha.turbidity.2$SampleDateTime) == 12)
+
+#seasonal dart data
+
+dart.jan <- subset (subset.dart.turbidity.2, 
+                    month(subset.dart.turbidity.2$SampleDateTime) == 01)
+dart.feb <-  subset (subset.dart.turbidity.2, 
+                     month(subset.dart.turbidity.2$SampleDateTime) == 02)
+dart.mar <-  subset (subset.dart.turbidity.2, 
+                     month(subset.dart.turbidity.2$SampleDateTime) == 03)
+dart.apr <-  subset (subset.dart.turbidity.2, 
+                     month(subset.dart.turbidity.2$SampleDateTime) == 04)
+dart.may <-  subset (subset.dart.turbidity.2, 
+                     month(subset.dart.turbidity.2$SampleDateTime) == 05)
+dart.jun <-  subset (subset.dart.turbidity.2, 
+                     month(subset.dart.turbidity.2$SampleDateTime) == 06)
+dart.jul <-  subset (subset.dart.turbidity.2, 
+                     month(subset.dart.turbidity.2$SampleDateTime) == 07)
+dart.aug <-  subset (subset.dart.turbidity.2, 
+                     month(subset.dart.turbidity.2$SampleDateTime) == 08)
+dart.sep <-  subset (subset.dart.turbidity.2, 
+                     month(subset.dart.turbidity.2$SampleDateTime) == 09)
+dart.oct <-  subset (subset.dart.turbidity.2, 
+                     month(subset.dart.turbidity.2$SampleDateTime) == 10)
+dart.nov <-  subset (subset.dart.turbidity.2, 
+                     month(subset.dart.turbidity.2$SampleDateTime) == 11)
+dart.dec <-  subset (subset.dart.turbidity.2, 
+                     month(subset.dart.turbidity.2$SampleDateTime) == 12)
+
+#seasonal rakaia data 
+
+rakaia.jan <- subset (subset.rakaia.turbidity.2, 
+                      month(subset.rakaia.turbidity.2$SampleDateTime) == 01)
+rakaia.feb <- subset (subset.rakaia.turbidity.2, 
+                      month(subset.rakaia.turbidity.2$SampleDateTime) == 02)
+rakaia.mar <- subset (subset.rakaia.turbidity.2, 
+                      month(subset.rakaia.turbidity.2$SampleDateTime) == 03)
+rakaia.apr <- subset (subset.rakaia.turbidity.2, 
+                     month(subset.rakaia.turbidity.2$SampleDateTime) == 04)
+rakaia.may <- subset (subset.rakaia.turbidity.2, 
+                      month(subset.rakaia.turbidity.2$SampleDateTime) == 05)
+rakaia.jun <- subset (subset.rakaia.turbidity.2, 
+                      month(subset.rakaia.turbidity.2$SampleDateTime) == 06)
+rakaia.jul <- subset (subset.rakaia.turbidity.2, 
+                      month(subset.rakaia.turbidity.2$SampleDateTime) == 07)
+rakaia.aug <- subset (subset.rakaia.turbidity.2, 
+                      month(subset.rakaia.turbidity.2$SampleDateTime) == 08)
+rakaia.sep <- subset (subset.rakaia.turbidity.2, 
+                      month(subset.rakaia.turbidity.2$SampleDateTime) == 09)
+rakaia.oct <- subset (subset.rakaia.turbidity.2, 
+                      month(subset.rakaia.turbidity.2$SampleDateTime) == 10)
+rakaia.nov <- subset (subset.rakaia.turbidity.2, 
+                      month(subset.rakaia.turbidity.2$SampleDateTime) == 11)
+rakaia.dec <- subset (subset.rakaia.turbidity.2, 
+                      month(subset.rakaia.turbidity.2$SampleDateTime) == 12)
+
+#///////////////////////////////////////////////////////////////////////////////////////////////
+
+plot(clutha.jan)
+
+
+ggplot(
+  data = clutha.jan,
+  aes(x = SampleDateTime, y = AgencyValue)
+) +
+  geom_boxplot()
+
+plot(clutha.jan$AgencyValue)
+
+
+clutha.nov.2 <- clutha.nov %>% 
+  mutate(Rivers = "Clutha")
+
+dart.nov.2 <- dart.nov %>% 
+  mutate(Rivers = "Dart")
+
+rakaia.nov.2 <- rakaia.nov %>% 
+  mutate(Rivers = "Rakaia")
+
+november <- bind_rows(list(clutha.dec.2, dart.dec.2, rakaia.dec.2)) %>% group_by(Rivers)
+
+
+ggplot( data = december,
+        aes(x = Rivers, y = december$AgencyValue, color = 
+              Rivers, group = Rivers) 
+) +
+  geom_boxplot() + xlab("Rivers") + ylab("Turbidity (FNU)") 
+
+
+ggplot(
+  data = clutha.jan,
+  aes(x = SampleDateTime, y = AgencyValue)
+) +
+  geom_violin()
+
+#create clutha month dataframe
+
+clutha.months <- bind_rows(clutha.jan, clutha.feb, clutha.mar, clutha.apr, clutha.may,
+                    clutha.jun, clutha.jul, clutha.aug, clutha.sep, clutha.oct,
+                    clutha.nov, clutha.dec)
+
+ggplot(
+  data = clutha.months,
+  aes(y = SampleDateTime, x = AgencyValue)
+) +
+  geom_boxplot() 
+
+View(in.situ)
+
+
+#//////////////////////////////////////////////////////////////////////////////////////////////
+
+# clutha seasonality
+
+clutha.jan.3 <- clutha.jan %>%
+  mutate(Month_of_Year = "January", Rivers = "Clutha")
+clutha.feb.3 <- clutha.feb %>%
+  mutate(Month_of_Year = "Febuary", Rivers = "Clutha")
+clutha.mar.3 <- clutha.mar %>%
+  mutate(Month_of_Year = "March")
+clutha.apr.3 <- clutha.apr %>%
+  mutate(Month_of_Year = "April")
+clutha.may.3 <- clutha.may %>%
+  mutate(Month_of_Year = "May")
+clutha.jun.3 <- clutha.jun %>%
+  mutate(Month_of_Year = "June")
+clutha.jul.3 <- clutha.jul %>%
+  mutate(Month_of_Year = "July")
+clutha.aug.3 <- clutha.aug %>%
+  mutate(Month_of_Year = "August")
+clutha.sep.3 <- clutha.sep %>%
+  mutate(Month_of_Year = "September")
+clutha.oct.3 <- clutha.oct %>%
+  mutate(Month_of_Year = "October")
+clutha.nov.3 <- clutha.nov %>%
+  mutate(Month_of_Year = "November")
+clutha.dec.3 <- clutha.dec %>%
+  mutate(Month_of_Year = "December", Rivers = "Clutha")
+
+#remove NA
+
+clutha.jan.3 <- clutha.jan.3 %>% drop_na(Month_of_Year)
+clutha.feb.3 <- clutha.feb.3 %>% drop_na(Month_of_Year)
+clutha.mar.3 <- clutha.mar.3 %>% drop_na(Month_of_Year)
+clutha.apr.3 <- clutha.apr.3 %>% drop_na(Month_of_Year)
+clutha.may.3 <- clutha.may.3 %>% drop_na(Month_of_Year)
+clutha.jun.3 <- clutha.jun.3 %>% drop_na(Month_of_Year)
+clutha.jul.3 <- clutha.jul.3 %>% drop_na(Month_of_Year)
+clutha.aug.3 <- clutha.aug.3 %>% drop_na(Month_of_Year)
+clutha.sep.3 <- clutha.sep.3 %>% drop_na(Month_of_Year)
+clutha.oct.3 <- clutha.oct.3 %>% drop_na(Month_of_Year)
+clutha.nov.3 <- clutha.nov.3 %>% drop_na(Month_of_Year)
+clutha.dec.3 <- clutha.dec.3 %>% drop_na(Month_of_Year)
+
+
+clutha.months <- bind_rows(list(clutha.jan.3, clutha.feb.3, 
+                                clutha.mar.3, clutha.apr.3, clutha.may.3,
+                                clutha.jun.3, clutha.jul.3, clutha.aug.3,
+                                clutha.sep.3, clutha.oct.3, clutha.nov.3,
+                                clutha.dec.3))%>% group_by(Month_of_Year)
+
+clutha.months$Month_of_Year <- factor(clutha.months$Month_of_Year,
+                                      levels = c("January", "Febuary", "March","April", 
+                                                 "May", "June", "July",
+           "August", "September", "October","November", "December"))
+ 
+ggplot( data = clutha.months,
+        aes(x = Month_of_Year, y = clutha.months$AgencyValue, fill = Month_of_Year, alpha = 0.3,
+            color = Month_of_Year, group = Month_of_Year) 
+) +
+  geom_boxplot() + xlab("Months") + ylab("Turbidity (FNU)") + ggtitle("Clutha
+  Seasonality") + theme(plot.title = element_text(hjust = 0.5, face = 'bold')) + scale_y_discrete(breaks = 0) 
+  
+  
+#//////////////////////////////////////////////////////////////////////////////////////////////
+
+# dart seasonality
+
+dart.jan.3 <- dart.jan %>%
+  mutate(Month_of_Year = "January", Rivers = "Dart")
+dart.feb.3 <- dart.feb %>%
+  mutate(Month_of_Year = "Febuary" , Rivers = "Dart")
+dart.mar.3 <- dart.mar %>%
+  mutate(Month_of_Year = "March")
+dart.apr.3 <- dart.apr %>%
+  mutate(Month_of_Year = "April")
+dart.may.3 <- dart.may %>%
+  mutate(Month_of_Year = "May")
+dart.jun.3 <- dart.jun %>%
+  mutate(Month_of_Year = "June")
+dart.jul.3 <- dart.jul %>%
+  mutate(Month_of_Year = "July")
+dart.aug.3 <- dart.aug %>%
+  mutate(Month_of_Year = "August")
+dart.sep.3 <- dart.sep %>%
+  mutate(Month_of_Year = "September")
+dart.oct.3 <- dart.oct %>%
+  mutate(Month_of_Year = "October")
+dart.nov.3 <- dart.nov %>%
+  mutate(Month_of_Year = "November")
+dart.dec.3 <- dart.dec %>%
+  mutate(Month_of_Year = "December" , Rivers = "Dart")
+
+#remove NA
+
+dart.jan.3 <- dart.jan.3 %>% drop_na(Month_of_Year)
+dart.feb.3 <- dart.feb.3 %>% drop_na(Month_of_Year)
+dart.mar.3 <- dart.mar.3 %>% drop_na(Month_of_Year)
+dart.apr.3 <- dart.apr.3 %>% drop_na(Month_of_Year)
+dart.may.3 <- dart.may.3 %>% drop_na(Month_of_Year)
+dart.jun.3 <- dart.jun.3 %>% drop_na(Month_of_Year)
+dart.jul.3 <- dart.jul.3 %>% drop_na(Month_of_Year)
+dart.aug.3 <- dart.aug.3 %>% drop_na(Month_of_Year)
+dart.sep.3 <- dart.sep.3 %>% drop_na(Month_of_Year)
+dart.oct.3 <- dart.oct.3 %>% drop_na(Month_of_Year)
+dart.nov.3 <- dart.nov.3 %>% drop_na(Month_of_Year)
+dart.dec.3 <- dart.dec.3 %>% drop_na(Month_of_Year)
+
+dart.months <- bind_rows(list(dart.jan.3, dart.feb.3, 
+                                dart.mar.3, dart.apr.3, dart.may.3,
+                                dart.jun.3, dart.jul.3, dart.aug.3,
+                                dart.sep.3, dart.oct.3, dart.nov.3,
+                                dart.dec.3))%>% group_by(Month_of_Year)
+
+dart.months$Month_of_Year <- factor(dart.months$Month_of_Year,
+                                      levels = c("January", "Febuary", "March","April", 
+                                                 "May", "June", "July",
+                                                 "August", "September", "October","November", "December"))
+
+ggplot( data = dart.months,
+        aes(x = Month_of_Year, y = dart.months$AgencyValue, fill = Month_of_Year, alpha = 0.3,
+            color = Month_of_Year, group = Month_of_Year) 
+) +
+  geom_boxplot() + xlab("Months") + ylab("Turbidity (FNU)") + ggtitle("Dart
+  Seasonality") + theme(plot.title = element_text(hjust = 0.5, face = 'bold')) + scale_y_discrete(breaks = 0) 
+
+
+#//////////////////////////////////////////////////////////////////////////////////////////////
+
+# rakaia seasonality
+
+rakaia.jan.3 <- rakaia.jan %>%
+  mutate(Month_of_Year = "January", Rivers = "Rakaia")
+rakaia.feb.3 <- rakaia.feb %>%
+  mutate(Month_of_Year = "Febuary" , Rivers = "Rakaia")
+rakaia.mar.3 <- rakaia.mar %>%
+  mutate(Month_of_Year = "March")
+rakaia.apr.3 <- rakaia.apr %>%
+  mutate(Month_of_Year = "April")
+rakaia.may.3 <- rakaia.may %>%
+  mutate(Month_of_Year = "May")
+rakaia.jun.3 <- rakaia.jun %>%
+  mutate(Month_of_Year = "June")
+rakaia.jul.3 <- rakaia.jul %>%
+  mutate(Month_of_Year = "July")
+rakaia.aug.3 <- rakaia.aug %>%
+  mutate(Month_of_Year = "August")
+rakaia.sep.3 <- rakaia.sep %>%
+  mutate(Month_of_Year = "September")
+rakaia.oct.3 <- rakaia.oct %>%
+  mutate(Month_of_Year = "October")
+rakaia.nov.3 <- rakaia.nov %>%
+  mutate(Month_of_Year = "November")
+rakaia.dec.3 <- rakaia.dec %>%
+  mutate(Month_of_Year = "December" , Rivers = "Rakaia")
+
+#remove NA
+
+rakaia.jan.3 <- rakaia.jan.3 %>% drop_na(Month_of_Year)
+rakaia.feb.3 <- rakaia.feb.3 %>% drop_na(Month_of_Year)
+rakaia.mar.3 <- rakaia.mar.3 %>% drop_na(Month_of_Year)
+rakaia.apr.3 <- rakaia.apr.3 %>% drop_na(Month_of_Year)
+rakaia.may.3 <- rakaia.may.3 %>% drop_na(Month_of_Year)
+rakaia.jun.3 <- rakaia.jun.3 %>% drop_na(Month_of_Year)
+rakaia.jul.3 <- rakaia.jul.3 %>% drop_na(Month_of_Year)
+rakaia.aug.3 <- rakaia.aug.3 %>% drop_na(Month_of_Year)
+rakaia.sep.3 <- rakaia.sep.3 %>% drop_na(Month_of_Year)
+rakaia.oct.3 <- rakaia.oct.3 %>% drop_na(Month_of_Year)
+rakaia.nov.3 <- rakaia.nov.3 %>% drop_na(Month_of_Year)
+rakaia.dec.3 <- rakaia.dec.3 %>% drop_na(Month_of_Year)
+
+rakaia.months <- bind_rows(list(rakaia.jan.3, rakaia.feb.3, 
+                              rakaia.mar.3, rakaia.apr.3, rakaia.may.3,
+                              rakaia.jun.3, rakaia.jul.3, rakaia.aug.3,
+                              rakaia.sep.3, rakaia.oct.3, rakaia.nov.3,
+                              rakaia.dec.3))%>% group_by(Month_of_Year)
+
+rakaia.months$Month_of_Year <- factor(rakaia.months$Month_of_Year,
+                                    levels = c("January", "Febuary", "March","April", 
+                                               "May", "June", "July",
+                                               "August", "September", "October","November", "December"))
+
+ggplot( data = rakaia.months,
+        aes(x = Month_of_Year, y = rakaia.months$AgencyValue, fill = Month_of_Year, alpha = 0.3,
+            color = Month_of_Year, group = Month_of_Year) 
+) +
+  geom_boxplot() + xlab("Months") + ylab("Turbidity (FNU)") + ggtitle("Rakaia
+  Seasonality") + theme(plot.title = element_text(hjust = 0.5, face = 'bold')) + scale_y_discrete(breaks = 0) 
+
+
+#//////////////////////////////////////////////////////////////////////////////
+
+ggplot( 
+  data = rakaia.oct.3,
+  aes(x = SampleDateTime, y = AgencyValue, fill = Month_of_Year, color = Month_of_Year,
+      group = Month_of_Year) 
+  ) +
+  geom_line() + xlab("Years") + ylab("Turbidity (FNU)") + ggtitle("Rakaia October
+  Trend") + theme(plot.title = element_text(hjust = 0.5, face = 'bold')) + geom_smooth(method = lm)
+
+ggplot(
+  data = big.data.time.2,
+  aes( y = AgencyValue, x = SampleDateTime, color = Rivers)
+) +
+  geom_line() + ylab("Turbidity (NDTI)") + xlab("Years") + geom_smooth(method = lm)
+
+
+
+#//////////////
+
+
+luggate <- subset(subset.clutha.turbidity.2, subset.clutha.turbidity.2$SiteID == "Clutha at Luggate Br.") 
+
+miller.balclutha <- subset(subset.clutha.turbidity.2, subset.clutha.turbidity.2$SiteID != "Clutha at Luggate Br.")
+  
+
+#/////////
+
+luggate$SampleDateTime[is.infinite(luggate$SampleDateTime)] = NA
+
+miller.balclutha$SampleDateTime[is.infinite(miller.balclutha$SampleDateTime)] = NA
+
+(luggate$SampleDateTime = mdy_hm(luggate$SampleDateTime)) %>% drop_na(luggate$SampleDateTime)
+
+(miller.balclutha$SampleDateTime = mdy_hm(miller.balclutha$SampleDateTime)) %>% drop_na(miller.balclutha$SampleDateTime)
+
+miller.balclutha$SampleDateTime <- drop_na(miller.balclutha$SampleDateTime)
+
+View(miller.balclutha)
+
+#/////////
+
+plot(y = luggate$AgencyValue, x = luggate$SampleDateTime,
+abline(lm(luggate$AgencyValue ~ luggate$SampleDateTime)))
+
+plot(y = miller.balclutha$AgencyValue, x = miller.balclutha$SampleDateTime,
+abline(lm(miller.balclutha$AgencyValue ~ miller.balclutha$SampleDateTime)))
+
+view(subset.clutha.turbidity.2)
+
+#/////////
+
+clutha.jan.4 <- clutha.jan.3 %>%
+  mutate(Month_of_Year = "January", Rivers = "Non-Glacial")
+clutha.feb.4 <- clutha.feb.3 %>%
+  mutate(Month_of_Year = "Febuary", Rivers = "Non-Glacial")
+clutha.dec.4 <- clutha.dec.3 %>%
+  mutate(Month_of_Year = "December", Rivers = "Non-Glacial")
+
+clutha.summer <- bind_rows(list(clutha.jan.4, clutha.feb.4, clutha.dec.4)) %>% group_by(Rivers, Month_of_Year)
+
+####////
+
+dart.jan.4 <- dart.jan.3 %>%
+  mutate(Month_of_Year = "January", Rivers = "Glacial")
+dart.feb.4 <- dart.feb.3 %>%
+  mutate(Month_of_Year = "Febuary", Rivers = "Glacial")
+dart.dec.4 <- dart.dec.3 %>%
+  mutate(Month_of_Year = "December", Rivers = "Glacial")
+
+dart.summer <- bind_rows(list(dart.jan.4, dart.feb.4, dart.dec.4)) %>% group_by(Rivers, Month_of_Year)
+
+####////
+
+rakaia.jan.4 <- rakaia.jan.3 %>%
+  mutate(Month_of_Year = "January", Rivers = "Proglacial")
+rakaia.feb.4 <- rakaia.feb.3 %>%
+  mutate(Month_of_Year = "Febuary", Rivers = "Proglacial")
+rakaia.dec.4 <- rakaia.dec.3 %>%
+  mutate(Month_of_Year = "December", Rivers = "Proglacial")
+
+rakaia.summer <- bind_rows(list(rakaia.jan.4, rakaia.feb.4, rakaia.dec.4)) %>% group_by(Rivers, Month_of_Year)
+
+rakaia.summer$AgencyValue <- as.numeric(as.character(rakaia.summer$AgencyValue))
+
+mean(rakaia.summer$AgencyValue)
+
+
+dart.summer$AgencyValue <- as.numeric(as.character(dart.summer$AgencyValue))
+
+mean(dart.summer$AgencyValue)
+
+
+clutha.summer$AgencyValue <- as.numeric(as.character(clutha.summer$AgencyValue))
+
+mean(clutha.summer$AgencyValue)
+
+
+austral.summer <- bind_rows(list(clutha.summer, dart.summer, rakaia.summer)) %>% group_by(Rivers, Month_of_Year)
+
+austral.summer <- austral.summer %>% drop_na(Month_of_Year)
+
+austral.summer$Rivers <- factor(austral.summer$Rivers, levels = c("Non-Glacial", "Glacial", "Proglacial"))
+
+ggplot( data = austral.summer,
+        aes(x = Rivers, y = austral.summer$AgencyValue, fill = Rivers, alpha = 0.3,
+            color = Rivers, group = Rivers) 
+) +
+  geom_boxplot() + xlab("Rivers") + ylab("Turbidity (FNU)") + theme(plot.title = element_text(hjust = 0.5, face = 'bold')) + scale_y_discrete(breaks = 0) + ggtitle("Austral Summer Seasonality") +
+theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=14,face="bold"), 
+        legend.text = element_text(size=14),
+        legend.title = element_text(size=14))
+
+
