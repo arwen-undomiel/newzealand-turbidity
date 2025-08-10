@@ -1,0 +1,1043 @@
+library(lubridate)
+library(ggbreak)
+library(GGally)
+library(CCA)
+library(CCP)
+library(tidyverse)
+library(dplyr)
+
+coleridge.time <- ymd(coleridge.df$X3)
+
+lyndon.time <- ymd(lyndon.df$X3)
+
+unknown.time <- ymd(unknown.df$X3)
+
+dunstan.time <- ymd(dunstan.df$X3)
+
+wakatipu.time <- ymd(wakatipu.df$X3)
+
+hawea.time <- ymd(hawea.df$X3)
+
+wanaka.time <- ymd(wanaka.df$X3)
+
+View(coleridge.df)
+
+#//////////////////////////////////////////////////////////////////////////////
+
+coleridge.df$X3 <- coleridge.time
+
+lyndon.df$X3 <- lyndon.time
+
+unknown.df$X3 <- unknown.time
+
+dunstan.df$X3 <- dunstan.time
+
+wakatipu.df$X3 <- wakatipu.time
+
+hawea.df$X3 <- hawea.time
+
+wanaka.df$X3 <- wanaka.time
+
+##//##//##//##//##//##//##//##//##
+
+View(.df)
+
+wanaka.df <- wanaka.df %>% drop_na(X3)
+
+#///////////////////////////////////////////////////////////////////////////////
+
+coleridge.lakes <- coleridge.df %>% 
+  mutate(Lakes = "Coleridge")
+
+lyndon.lakes <- lyndon.df %>% 
+  mutate(Lakes = "Lyndon")
+
+rakaia.lakes <- bind_rows(list(coleridge.lakes, lyndon.lakes)) %>% group_by(Lakes)
+
+view(rakaia.lakes)
+
+#/////////////////////////////////
+
+wakatipu.lakes <- wakatipu.df %>% 
+  mutate(Lakes = "Wakatipu")
+
+unknown.lakes <- unknown.df %>% 
+  mutate(Lakes = "Unknown")
+
+dart.lakes <- bind_rows(list(wakatipu.lakes, unknown.lakes)) %>% group_by(Lakes)
+
+View(dart.lakes)
+
+#/////////////////////////////////
+
+dunstan.lakes <- dunstan.df %>% 
+  mutate(Rivers = "Non-Glacial")
+
+hawea.lakes <- hawea.df %>% 
+  mutate(Rivers = "Non-Glacial")
+
+wanaka.lakes <- wanaka.df %>% 
+  mutate(Rivers = "Non-Glacial")
+
+coleridge.lakes <- coleridge.df %>% 
+  mutate(Rivers = "Proglacial")
+
+lyndon.lakes <- lyndon.df %>% 
+  mutate(Rivers = "Proglacial")
+
+unknown.lakes <- unknown.df %>% 
+  mutate(Rivers = "Glacial")
+
+wakatipu.lakes <- wakatipu.df %>% 
+  mutate(Rivers = "Glacial")
+
+clutha.lakes <- bind_rows(list(dunstan.lakes, hawea.lakes, wanaka.lakes)) %>% group_by(Rivers)
+
+dart.lakes <- bind_rows(list(wakatipu.lakes, unknown.lakes)) %>% group_by(Rivers)
+
+rakaia.lakes <- bind_rows(list(coleridge.lakes, lyndon.lakes)) %>% group_by(Rivers)
+
+big.lakes <- bind_rows(list(clutha.lakes, dart.lakes, rakaia.lakes)) %>% group_by(Rivers)
+
+glacial <- bind_rows(list(dart.lakes, rakaia.lakes)) %>% group_by(Rivers)
+
+clutha.bind <- rbind(hawea.df, dunstan.df, wanaka.df) %>%
+mutate(Rivers = "Non-Glacial")
+
+dart.bind <- rbind (unknown.df, wakatipu.df) %>%
+mutate(Rivers = "Glacial")
+
+rakaia.bind <- rbind(coleridge.df, lyndon.df) %>%
+mutate(Rivers = "Proglacial")
+
+lakes.bind <-  bind_rows(list(clutha.bind, dart.bind, rakaia.bind)) %>% group_by(Rivers)
+
+lakes.bind$Rivers <- factor(lakes.bind$Rivers, levels = c("Non-Glacial", "Glacial", "Proglacial"))
+
+#///////////////////////////////////////////////////////////////////////////////
+
+ggplot(
+  data = dart.lakes,
+  aes(y = X2, x = X3)
+) +
+  geom_line()  +
+  geom_smooth(method = lm) + ylab("Turbidity (NDTI)") + xlab("Years") 
+
+
+ggplot(
+  data = lakes.bind,
+  aes( y = X2, x = Rivers, color = Rivers)
+) +
+  geom_boxplot() + ylab("Turbidity (NDTI)") 
+
+ggplot(
+  data = lakes.bind,
+  aes( y = X2, x = X3, color = Rivers)
+) +
+  geom_line() + ylab("Turbidity (NDTI)") + xlab("Years") + geom_smooth(method = lm) + ggtitle("Satellite Data Comparison") +
+  theme(axis.text=element_text(size=14),
+        axis.title=element_text(size=14,face="bold"), 
+        legend.text = element_text(size=14),
+        legend.title = element_text(size=14),
+        plot.title = element_text(hjust = 0.5, face = 'bold'))
+
+# limit year range
+
+clutha.cut <- clutha.lakes %>% filter(between(clutha.lakes$X3, as.Date('2024-01-01'), as.Date('2024-12-31'))) %>% 
+  mutate(Rivers = "Clutha")
+dart.cut <- dart.lakes %>% filter(between(dart.lakes$X3, as.Date('2024-01-01'), as.Date('2024-12-31'))) %>% 
+  mutate(Rivers = "Dart")
+rakaia.cut <- rakaia.lakes %>% filter(between(rakaia.lakes$X3, as.Date('2024-01-01'), as.Date('2024-12-31'))) %>% 
+  mutate(Rivers = "Rakaia")
+
+lakes.cut <- bind_rows(list(clutha.cut, dart.cut, rakaia.cut)) %>% group_by(Rivers)
+
+ggplot(
+  data = lakes.cut,
+  aes( y = X2, x = X3, color = Rivers)
+) +
+  geom_line() + ylab("Turbidity (NDTI)") + xlab("Years") + geom_smooth(method = lm) 
+
+View(lakes.bind)
+
+qt(lakes.bind)
+
+#///////////////////////////////////////////////////////////////////////////////
+
+lakes.name <- c('Clutha River', 'Dart River', 'Rakaia River')
+lakes.mean <- c(mean(clutha.lakes$X2), mean(dart.lakes$X2), mean(rakaia.lakes$X2))
+lakes.median <- c(median(clutha.lakes$X2), median(dart.lakes$X2), median(rakaia.lakes$X2))
+lakes.sd <- c(sd(clutha.lakes$X2), sd(dart.lakes$X2), sd(rakaia.lakes$X2))
+lakes.iqr <- c(IQR(clutha.lakes$X2), IQR(dart.lakes$X2), IQR(rakaia.lakes$X2))
+lakes.mad <- c(mad(clutha.lakes$X2), mad(dart.lakes$X2), mad(rakaia.lakes$X2))
+lakes.min <- c(min(clutha.lakes$X2), min(dart.lakes$X2), min(rakaia.lakes$X2))
+lakes.max <- c(max(clutha.lakes$X2), max(dart.lakes$X2), max(rakaia.lakes$X2))
+
+lakes.df <- data.frame(lakes.name, lakes.mean, lakes.median, lakes.sd, lakes.iqr, 
+                      lakes.mad, lakes.min, lakes.max)
+
+#////////////////////////////////////////////////////////////////////////////////
+
+clutha.2016 <- subset (clutha.lakes, 
+                       year(clutha.lakes$X3) == 2016)
+clutha.2018 <- subset (clutha.lakes, 
+                       year(clutha.lakes$X3) == 2018)
+clutha.2019 <- subset (clutha.lakes, 
+                       year(clutha.lakes$X3) == 2019)
+clutha.2020 <- subset (clutha.lakes, 
+                       year(clutha.lakes$X3) == 2020)
+clutha.2021 <- subset (clutha.lakes, 
+                       year(clutha.lakes$X3) == 2021)
+clutha.2022 <- subset (clutha.lakes, 
+                       year(clutha.lakes$X3) == 2022)
+clutha.2023 <- subset (clutha.lakes, 
+                       year(clutha.lakes$X3) == 2023)
+clutha.2024 <- subset (clutha.lakes, 
+                       year(clutha.lakes$X3) == 2024)
+
+#///////////////////
+
+dart.2016 <- subset (dart.lakes, 
+                       year(dart.lakes$X3) == 2016)
+dart.2017 <- subset (dart.lakes, 
+                     year(dart.lakes$X3) == 2017)
+dart.2018 <- subset (dart.lakes, 
+                       year(dart.lakes$X3) == 2018)
+dart.2019 <- subset (dart.lakes, 
+                       year(dart.lakes$X3) == 2019)
+dart.2020 <- subset (dart.lakes, 
+                       year(dart.lakes$X3) == 2020)
+dart.2021 <- subset (dart.lakes, 
+                       year(dart.lakes$X3) == 2021)
+dart.2022 <- subset (dart.lakes, 
+                       year(dart.lakes$X3) == 2022)
+dart.2023 <- subset (dart.lakes, 
+                       year(dart.lakes$X3) == 2023)
+dart.2024 <- subset (dart.lakes, 
+                       year(dart.lakes$X3) == 2024)
+
+#////////////////////
+
+rakaia.2016 <- subset (rakaia.lakes, 
+                     year(rakaia.lakes$X3) == 2016)
+rakaia.2017 <- subset (rakaia.lakes, 
+                     year(rakaia.lakes$X3) == 2017)
+rakaia.2018 <- subset (rakaia.lakes, 
+                     year(rakaia.lakes$X3) == 2018)
+rakaia.2019 <- subset (rakaia.lakes, 
+                     year(rakaia.lakes$X3) == 2019)
+rakaia.2020 <- subset (rakaia.lakes, 
+                     year(rakaia.lakes$X3) == 2020)
+rakaia.2021 <- subset (rakaia.lakes, 
+                     year(rakaia.lakes$X3) == 2021)
+rakaia.2022 <- subset (rakaia.lakes, 
+                     year(rakaia.lakes$X3) == 2022)
+rakaia.2023 <- subset (rakaia.lakes, 
+                     year(rakaia.lakes$X3) == 2023)
+rakaia.2024 <- subset (rakaia.lakes, 
+                     year(rakaia.lakes$X3) == 2024)
+
+#//////////////////////////////////////////////////////////////////////////////
+
+ggplot(
+  data = rakaia.2024,
+  aes( y = X2, x = X3)
+) +
+  geom_line() + ylab("Turbidity (NDTI)") + xlab("Years") + geom_smooth(method = lm)
+
+#///////////////////////////////////////////////////////////////////////////////
+
+#seasonal clutha data
+
+clutha.jan.lakes <- subset (clutha.lakes, 
+                      month(clutha.lakes$X3) == 01) %>%
+  mutate(Month_of_Year = "January")
+clutha.feb.lakes <- subset (clutha.lakes,
+                      month(clutha.lakes$X3) == 02) %>%
+  mutate(Month_of_Year = "Feburary")
+clutha.mar.lakes <-subset (clutha.lakes, 
+                     month(clutha.lakes$X3) == 03) %>%
+  mutate(Month_of_Year = "March")
+clutha.apr.lakes <- subset (clutha.lakes, 
+                      month(clutha.lakes$X3) == 04) %>%
+  mutate(Month_of_Year = "April")
+clutha.may.lakes <- subset (clutha.lakes, 
+                      month(clutha.lakes$X3) == 05) %>%
+  mutate(Month_of_Year = "May")
+clutha.jun.lakes <- subset (clutha.lakes, 
+                      month(clutha.lakes$X3) == 06) %>%
+  mutate(Month_of_Year = "June")
+clutha.jul.lakes <- subset (clutha.lakes,
+                     month(clutha.lakes$X3) == 07) %>%
+  mutate(Month_of_Year = "July")
+clutha.aug.lakes <- subset (clutha.lakes, 
+                      month(clutha.lakes$X3) == 08) %>%
+  mutate(Month_of_Year = "August")
+clutha.sep.lakes <- subset (clutha.lakes, 
+                      month(clutha.lakes$X3) == 09) %>%
+  mutate(Month_of_Year = "September")
+clutha.oct.lakes <- subset (clutha.lakes, 
+                      month(clutha.lakes$X3) == 10) %>%
+  mutate(Month_of_Year = "October")
+clutha.nov.lakes <- subset (clutha.lakes, 
+                      month(clutha.lakes$X3) == 11) %>%
+  mutate(Month_of_Year = "November")
+clutha.dec.lakes <- subset (clutha.lakes, 
+                      month(clutha.lakes$X3) == 12)%>%
+  mutate(Month_of_Year = "December")
+
+
+#seasonal dart data
+
+dart.jan.lakes <- subset (dart.lakes, 
+                    month(dart.lakes$X3) == 01) %>%
+mutate(Month_of_Year = "January")
+dart.feb.lakes <-  subset (dart.lakes, 
+                     month(dart.lakes$X3) == 02) %>%
+  mutate(Month_of_Year = "Febuary")
+dart.mar.lakes <-  subset (dart.lakes, 
+                     month(dart.lakes$X3) == 03) %>%
+  mutate(Month_of_Year = "March")
+dart.apr.lakes <-  subset (dart.lakes, 
+                     month(dart.lakes$X3) == 04) %>%
+  mutate(Month_of_Year = "April")
+dart.may.lakes <-  subset (dart.lakes, 
+                     month(dart.lakes$X3) == 05) %>%
+  mutate(Month_of_Year = "May")
+dart.jun.lakes <-  subset (dart.lakes, 
+                     month(dart.lakes$X3) == 06) %>%
+  mutate(Month_of_Year = "June")
+dart.jul.lakes <-  subset (dart.lakes, 
+                     month(dart.lakes$X3) == 07) %>%
+  mutate(Month_of_Year = "July")
+dart.aug.lakes <-  subset (dart.lakes, 
+                     month(dart.lakes$X3) == 08) %>%
+  mutate(Month_of_Year = "August")
+dart.sep.lakes <-  subset (dart.lakes, 
+                     month(dart.lakes$X3) == 09) %>%
+  mutate(Month_of_Year = "September")
+dart.oct.lakes <-  subset (dart.lakes, 
+                     month(dart.lakes$X3) == 10) %>%
+  mutate(Month_of_Year = "October")
+dart.nov.lakes <-  subset (dart.lakes, 
+                     month(dart.lakes$X3) == 11) %>%
+  mutate(Month_of_Year = "November")
+dart.dec.lakes <-  subset (dart.lakes, 
+                     month(dart.lakes$X3) == 12) %>%
+  mutate(Month_of_Year = "December")
+
+#seasonal rakaia data 
+
+rakaia.jan.lakes <- subset (rakaia.lakes, 
+                      month(rakaia.lakes$X3) == 01) %>%
+  mutate(Month_of_Year = "January")
+rakaia.feb.lakes <- subset (rakaia.lakes, 
+                      month(rakaia.lakes$X3) == 02) %>%
+  mutate(Month_of_Year = "Febuary")
+rakaia.mar.lakes <- subset (rakaia.lakes, 
+                      month(rakaia.lakes$X3) == 03) %>%
+  mutate(Month_of_Year = "March")
+rakaia.apr.lakes <- subset (rakaia.lakes, 
+                      month(rakaia.lakes$X3) == 04) %>%
+  mutate(Month_of_Year = "April")
+rakaia.may.lakes <- subset (rakaia.lakes, 
+                      month(rakaia.lakes$X3) == 05) %>%
+  mutate(Month_of_Year = "May")
+rakaia.jun.lakes <- subset (rakaia.lakes, 
+                      month(rakaia.lakes$X3) == 06) %>%
+  mutate(Month_of_Year = "June")
+rakaia.jul.lakes <- subset (rakaia.lakes, 
+                      month(rakaia.lakes$X3) == 07) %>%
+  mutate(Month_of_Year = "July")
+rakaia.aug.lakes <- subset (rakaia.lakes, 
+                      month(rakaia.lakes$X3) == 08) %>%
+  mutate(Month_of_Year = "August")
+rakaia.sep.lakes <- subset (rakaia.lakes, 
+                      month(rakaia.lakes$X3) == 09) %>%
+  mutate(Month_of_Year = "September")
+rakaia.oct.lakes <- subset (rakaia.lakes, 
+                      month(rakaia.lakes$X3) == 10) %>%
+  mutate(Month_of_Year = "October")
+rakaia.nov.lakes <- subset (rakaia.lakes, 
+                      month(rakaia.lakes$X3) == 11) %>%
+  mutate(Month_of_Year = "November")
+rakaia.dec.lakes <- subset (rakaia.lakes, 
+                      month(rakaia.lakes$X3) == 12) %>%
+  mutate(Month_of_Year = "December")
+
+#///////////////////////////////////////////
+
+clutha.months.lakes <- bind_rows(list(clutha.jan.lakes, clutha.feb.lakes, 
+                                clutha.mar.lakes, clutha.apr.lakes, clutha.may.lakes,
+                                clutha.jun.lakes, clutha.jul.lakes, clutha.aug.lakes,
+                                clutha.sep.lakes, clutha.oct.lakes, clutha.nov.lakes,
+                                clutha.dec.lakes))%>% group_by(Month_of_Year)
+
+clutha.months.lakes$Month_of_Year <- factor(clutha.months.lakes$Month_of_Year,
+                                      levels = c("January", "Febuary", "March","April", 
+                                                 "May", "June", "July",
+                                                 "August", "September", "October","November", "December"))
+
+clutha.months.lakes <- clutha.months.lakes %>% drop_na(Month_of_Year)
+
+#/////////////////////////////
+
+dart.months.lakes <- bind_rows(list(dart.jan.lakes, dart.feb.lakes, 
+                              dart.mar.lakes, dart.apr.lakes, dart.may.lakes,
+                              dart.jun.lakes, dart.jul.lakes, dart.aug.lakes,
+                              dart.sep.lakes, dart.oct.lakes, dart.nov.lakes,
+                              dart.dec.lakes))%>% group_by(Month_of_Year)
+
+dart.months.lakes$Month_of_Year <- factor(dart.months.lakes$Month_of_Year,
+                                    levels = c("January", "Febuary", "March","April", 
+                                               "May", "June", "July",
+                                               "August", "September", "October","November", "December"))
+#//////////////////////////
+
+rakaia.months.lakes <- bind_rows(list(rakaia.jan.lakes, rakaia.feb.lakes, 
+                                rakaia.mar.lakes, rakaia.apr.lakes, rakaia.may.lakes,
+                                rakaia.jun.lakes, rakaia.jul.lakes, rakaia.aug.lakes,
+                                rakaia.sep.lakes, rakaia.oct.lakes, rakaia.nov.lakes,
+                                rakaia.dec.lakes))%>% group_by(Month_of_Year)
+
+rakaia.months.lakes$Month_of_Year <- factor(rakaia.months.lakes$Month_of_Year,
+                                      levels = c("January", "Febuary", "March","April", 
+                                                 "May", "June", "July",
+                                                 "August", "September", "October","November", "December"))
+
+#////////////////////////////////////////////////////
+
+ggplot( data = clutha.months.lakes,
+        aes(x = Month_of_Year, y = X2, fill = Month_of_Year, alpha = 0.3,
+            color = Month_of_Year, group = Month_of_Year) 
+) +
+  geom_boxplot() + xlab("Months") + ylab("Turbidity (FNU)") + ggtitle("Clutha
+  Seasonality") + theme(plot.title = element_text(hjust = 0.5, face = 'bold')) 
+#////////////////////////////////////////////////////
+
+ggplot( data = dart.months.lakes,
+        aes(x = Month_of_Year, y = X2, fill = Month_of_Year, alpha = 0.3,
+            color = Month_of_Year, group = Month_of_Year) 
+) +
+  geom_boxplot() + xlab("Months") + ylab("Turbidity (FNU)") + ggtitle("Dart
+  Seasonality") + theme(plot.title = element_text(hjust = 0.5, face = 'bold')) 
+#/////////////////////////////////////////////////////
+
+ggplot( data = rakaia.months.lakes,
+        aes(x = Month_of_Year, y = X2, fill = Month_of_Year, alpha = 0.3,
+            color = Month_of_Year, group = Month_of_Year) 
+) +
+  geom_boxplot() + xlab("Months") + ylab("Turbidity (FNU)") + ggtitle("Rakaia
+  Seasonality") + theme(plot.title = element_text(hjust = 0.5, face = 'bold')) 
+
+
+ggplot( 
+  data = rakaia.oct.lakes,
+  aes(x = X3, y = X2) 
+) +
+  geom_line() + xlab("Years") + ylab("Turbidity (FNU)") + ggtitle("Rakaia October
+  Trend") + theme(plot.title = element_text(hjust = 0.5, face = 'bold')) + geom_smooth(method = lm)
+
+#///////////////////////////////////////////////////////////////////////////////
+
+clutha.jan.av <- mean(clutha.jan.lakes$X2)
+clutha.feb.av <- mean(clutha.feb.lakes$X2)
+clutha.mar.av <- mean(clutha.mar.lakes$X2)
+clutha.apr.av <- mean(clutha.apr.lakes$X2)
+clutha.may.av <- mean(clutha.may.lakes$X2)
+clutha.jun.av <- mean(clutha.jun.lakes$X2)
+clutha.jul.av <- mean(clutha.jul.lakes$X2)
+clutha.aug.av <- mean(clutha.aug.lakes$X2)
+clutha.sep.av <- mean(clutha.sep.lakes$X2)
+clutha.oct.av <- mean(clutha.oct.lakes$X2)
+clutha.nov.av <- mean(clutha.nov.lakes$X2)
+clutha.dec.av <- mean(clutha.dec.lakes$X2)
+
+clutha.months.av <- data.frame(averages = c(clutha.jan.av, clutha.feb.av, clutha.mar.av, clutha.apr.av,
+                               clutha.may.av, clutha.jun.av, clutha.jul.av, clutha.aug.av,
+                               clutha.sep.av, clutha.oct.av, clutha.nov.av, clutha.dec.av))
+                               #years = c(2016, 2016, 2016, 2016, 2016, 2016, 2016, 2016, 2016, 2016,
+                                         #2016, 2016, 2018, 2018, 2018, 2018, 2018, 2018, 2018,
+                                         #2018, 2018, 2018, 2018, 2018, 2019, 2019, 2019, 2019,
+                                         #2019, 2019, 2019, 2019, 2019, 2019, 2019, 2019, 2020,
+                                         #2020, 2020, 2020, 2020, 2020, 2020, 2020, 2020, 2020, 2020,
+                                         #2020, 2021, 2021, 2021, 2021, 2021, 2021, 2021, 2021, 2021,
+                                         #2021, 2021, 2021, 2022, 2022, 2022, 2022, 2022, 2022, 2022,
+                                        # 2022, 2022, 2022, 2022, 2022, 2023, 2023, 2023, 2023, 2023,
+                                        # 2023, 2023, 2023, 2023, 2023, 2023, 2023, 2024, 2024, 2024,
+                                        #2024, 2024, 2024, 2024, 2024, 2024, 2024, 2024, 2024
+
+
+clutha.months.av$years <- year(clutha.months.av$years)
+
+dart.jan.av <- mean(dart.jan.lakes$X2)
+dart.feb.av <- mean(dart.feb.lakes$X2)
+dart.mar.av <- mean(dart.mar.lakes$X2)
+dart.apr.av <- mean(dart.apr.lakes$X2)
+dart.may.av <- mean(dart.may.lakes$X2)
+dart.jun.av <- mean(dart.jun.lakes$X2)
+dart.jul.av <- mean(dart.jul.lakes$X2)
+dart.aug.av <- mean(dart.aug.lakes$X2)
+dart.sep.av <- mean(dart.sep.lakes$X2)
+dart.oct.av <- mean(dart.oct.lakes$X2)
+dart.nov.av <- mean(dart.nov.lakes$X2)
+dart.dec.av <- mean(dart.dec.lakes$X2)
+
+dart.months.av <- data.frame(averages = c(dart.jan.av, dart.feb.av, dart.mar.av, dart.apr.av,
+                               dart.may.av, dart.jun.av, dart.jul.av, dart.aug.av,
+                               dart.sep.av, dart.oct.av, dart.nov.av, dart.dec.av), 
+                             years = c(2016, 2016, 2016, 2016, 2016, 2016, 2016, 2016, 2016, 2016,
+                                       2016, 2016, 2017, 2017, 2017, 
+                                       2017, 2017, 2017, 2017, 2017,
+                                       2017, 2017, 2017, 2017, 2018, 2018, 2018, 2018, 2018, 2018, 2018,
+                                       2018, 2018, 2018, 2018, 2018, 2019, 2019, 2019, 2019,
+                                       2019, 2019, 2019, 2019, 2019, 2019, 2019, 2019, 2020,
+                                       2020, 2020, 2020, 2020, 2020, 2020, 2020, 2020, 2020, 2020,
+                                       2020, 2021, 2021, 2021, 2021, 2021, 2021, 2021, 2021, 2021,
+                                       2021, 2021, 2021, 2022, 2022, 2022, 2022, 2022, 2022, 2022,
+                                       2022, 2022, 2022, 2022, 2022, 2023, 2023, 2023, 2023, 2023,
+                                       2023, 2023, 2023, 2023, 2023, 2023, 2023, 2024, 2024, 2024,
+                                       2024, 2024, 2024, 2024, 2024, 2024, 2024, 2024, 2024))
+
+rakaia.jan.av <- mean(rakaia.jan.lakes$X2)
+rakaia.feb.av <- mean(rakaia.feb.lakes$X2)
+rakaia.mar.av <- mean(rakaia.mar.lakes$X2)
+rakaia.apr.av <- mean(rakaia.apr.lakes$X2)
+rakaia.may.av <- mean(rakaia.may.lakes$X2)
+rakaia.jun.av <- mean(rakaia.jun.lakes$X2)
+rakaia.jul.av <- mean(rakaia.jul.lakes$X2)
+rakaia.aug.av <- mean(rakaia.aug.lakes$X2)
+rakaia.sep.av <- mean(rakaia.sep.lakes$X2)
+rakaia.oct.av <- mean(rakaia.oct.lakes$X2)
+rakaia.nov.av <- mean(rakaia.nov.lakes$X2)
+rakaia.dec.av <- mean(rakaia.dec.lakes$X2)
+
+rakaia.months.av <- data.frame(averages = c(rakaia.jan.av, rakaia.feb.av, rakaia.mar.av, rakaia.apr.av,
+                               rakaia.may.av, rakaia.jun.av, rakaia.jul.av, rakaia.aug.av,
+                               rakaia.sep.av, rakaia.oct.av, rakaia.nov.av, rakaia.dec.av))
+                               #years = c(2016, 2016, 2016, 2016, 2016, 2016, 2016, 2016, 2016, 2016,
+                                         #2016, 2016, 2017, 2017, 2017, 
+                                        # 2017, 2017, 2017, 2017, 2017,
+                                        # 2017, 2017, 2017, 2017, 2018, 2018, 2018, 2018, 2018, 2018, 2018,
+                                        # 2018, 2018, 2018, 2018, 2018, 2019, 2019, 2019, 2019,
+                                        # 2019, 2019, 2019, 2019, 2019, 2019, 2019, 2019, 2020,
+                                        # 2020, 2020, 2020, 2020, 2020, 2020, 2020, 2020, 2020, 2020,
+                                        # 2020, 2021, 2021, 2021, 2021, 2021, 2021, 2021, 2021, 2021,
+                                        # 2021, 2021, 2021, 2022, 2022, 2022, 2022, 2022, 2022, 2022,
+                                        # 2022, 2022, 2022, 2022, 2022, 2023, 2023, 2023, 2023, 2023,
+                                        # 2023, 2023, 2023, 2023, 2023, 2023, 2023, 2024, 2024, 2024,
+                                        # 2024, 2024, 2024, 2024, 2024, 2024, 2024, 2024, 2024))
+
+clutha.months.bind <- clutha.months.av %>%
+  mutate(Rivers = "Clutha")
+dart.months.bind <- dart.months.av %>%
+  mutate(Rivers = "Dart")
+rakaia.months.bind <- rakaia.months.av %>%
+  mutate(Rivers = "Rakaia")
+
+months.bind <-  bind_rows(list(clutha.months.bind, dart.months.bind, rakaia.months.bind)) %>% group_by(Rivers)
+
+View(months.bind)
+
+
+#///////////////////////////////////////////////////////////////////////////////////
+
+ggplot(
+  data = months.bind,
+  aes( y = averages, x = Rivers, color = Rivers)
+) +
+  geom_boxplot() + ylab("Turbidity (NDTI)") + xlab("Years") + geom_smooth(method = lm)
+
+#////////////////////////////////////////
+
+mean(dart.lakes$X2)
+
+View(dart.lakes)
+
+group1 <- rnorm(844, mean =  -0.7619659, sd = 0.07410411)
+group2 <- rnorm(366, mean = -0.7986024, sd = 0.06834286)
+group3 <- rnorm(309, mean = -0.7779283, sd = 0.0714501)
+
+# Perform t-test
+t_test_result <- t.test(group2, group3)
+print(t_test_result)
+
+#///////////////////////////////////////////////////
+
+#insitu.dart <- as.numeric(as.character(unlist(subset.dart.turbidity.2$AgencyValue)))
+
+#dart.matrix.insitu <- matrix(data = insitu.dart, nrow = 161, ncol = 1, byrow = TRUE)
+
+#dart.matrix <- matrix(data = dart.lakes$X2, nrow = 161, ncol = 1, byrow = TRUE)
+
+#matcor(dart.matrix, dart.matrix.insitu)
+
+#cc1 <- cc(dart.matrix, dart.matrix.insitu)
+
+# display the canonical correlations
+
+#cc1$cor
+
+#calculate r2 value
+
+rsq <- function (x, y) cor(x, y) ^ 2
+
+summary(lm(rakaia.lakes$X2 ~ rakaia.lakes$X3))
+summary(lm(clutha.lakes$X2 ~ clutha.lakes$X3))
+summary(lm(dart.lakes$X2 ~ dart.lakes$X3))
+
+summary(lm(subset.dart.turbidity.2$AgencyValue ~ subset.dart.turbidity.2$SampleDateTime))
+summary(lm(subset.clutha.turbidity.2$AgencyValue ~ subset.clutha.turbidity.2$SampleDateTime))
+summary(lm(subset.rakaia.turbidity.2$AgencyValue ~ subset.rakaia.turbidity.2$SampleDateTime))
+
+summary(lm(clutha.river.cut$AgencyValue ~ clutha.river.cut$SampleDateTime))
+summary(lm(dart.river.cut$AgencyValue ~ dart.river.cut$SampleDateTime))
+summary(lm(rakaia.river.cut$AgencyValue ~ rakaia.river.cut$SampleDateTime))
+
+view(subset.clutha.turbidity.2)
+
+#///////////////////////////////////////////////////////////////////////////////
+
+#getting rakaia in situ ready for regression
+
+years.to.keep <- year(subset.rakaia.turbidity.2$SampleDateTime) >= 2016
+
+rakaia.insitu <- subset.rakaia.turbidity.2[years.to.keep,]
+
+rakaia.insitu$AgencyValue <- as.numeric(as.character((rakaia.insitu$AgencyValue)))
+
+#/////
+
+rakaia.jan.av.2 <- mean(subset(rakaia.insitu$AgencyValue,
+                               month(rakaia.insitu$SampleDateTime) == 01)) 
+rakaia.feb.av.2 <- mean(subset(rakaia.insitu$AgencyValue,
+                               month(rakaia.insitu$SampleDateTime) == 02))
+rakaia.mar.av.2 <- mean(subset(rakaia.insitu$AgencyValue,
+                               month(rakaia.insitu$SampleDateTime) == 03))
+rakaia.apr.av.2 <- mean(subset(rakaia.insitu$AgencyValue,
+                               month(rakaia.insitu$SampleDateTime) == 04))
+rakaia.may.av.2 <- mean(subset(rakaia.insitu$AgencyValue,
+                               month(rakaia.insitu$SampleDateTime) == 05))
+rakaia.jun.av.2 <- mean(subset(rakaia.insitu$AgencyValue,
+                               month(rakaia.insitu$SampleDateTime) == 06))
+rakaia.jul.av.2 <- mean(subset(rakaia.insitu$AgencyValue,
+                               month(rakaia.insitu$SampleDateTime) == 07))
+rakaia.aug.av.2 <- mean(subset(rakaia.insitu$AgencyValue,
+                               month(rakaia.insitu$SampleDateTime) == 08))
+rakaia.sep.av.2 <- mean(subset(rakaia.insitu$AgencyValue,
+                               month(rakaia.insitu$SampleDateTime) == 09))
+rakaia.oct.av.2 <- mean(subset(rakaia.insitu$AgencyValue,
+                               month(rakaia.insitu$SampleDateTime) == 10))
+rakaia.nov.av.2 <- mean(subset(rakaia.insitu$AgencyValue,
+                               month(rakaia.insitu$SampleDateTime) == 11))
+rakaia.dec.av.2 <- mean(subset(rakaia.insitu$AgencyValue,
+                               month(rakaia.insitu$SampleDateTime) == 12))
+
+rakaia.months <- data.frame(insitu.averages = c(rakaia.jan.av.2, rakaia.feb.av.2, rakaia.mar.av.2, rakaia.apr.av.2,
+                              rakaia.may.av.2, rakaia.jun.av.2, rakaia.jul.av.2, rakaia.aug.av.2,
+                              rakaia.sep.av.2, rakaia.oct.av.2, rakaia.nov.av.2, rakaia.dec.av.2))
+
+rakaia.combined <- data.frame(insitu = rakaia.months, 
+                              satellite = rakaia.months.av)
+
+rakaia.combined$satellite.years <- NULL
+
+plot(y = rakaia.combined$insitu.averages, 
+     x = rakaia.combined$satellite.averages, main = "Rakaia In Situ/Satellite Regression", 
+     xlab = "Satellite", ylab = "In Situ",
+     abline(lm(rakaia.combined$insitu.averages ~ rakaia.combined$satellite.averages)))
+
+#/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#getting dart in situ ready for regression
+
+years.to.keep.dart <- year(subset.dart.turbidity.2$SampleDateTime) >= 2016
+
+dart.insitu <- subset.dart.turbidity.2[years.to.keep.dart,]
+
+dart.insitu$AgencyValue <- as.numeric(as.character((dart.insitu$AgencyValue)))
+
+#/////
+
+dart.jan.av.2 <- mean(subset(dart.insitu$AgencyValue,
+                               month(dart.insitu$SampleDateTime) == 01)) 
+dart.feb.av.2 <- mean(subset(dart.insitu$AgencyValue,
+                               month(dart.insitu$SampleDateTime) == 02))
+dart.mar.av.2 <- mean(subset(dart.insitu$AgencyValue,
+                               month(dart.insitu$SampleDateTime) == 03))
+dart.apr.av.2 <- mean(subset(dart.insitu$AgencyValue,
+                               month(dart.insitu$SampleDateTime) == 04))
+dart.may.av.2 <- mean(subset(dart.insitu$AgencyValue,
+                               month(dart.insitu$SampleDateTime) == 05))
+dart.jun.av.2 <- mean(subset(dart.insitu$AgencyValue,
+                               month(dart.insitu$SampleDateTime) == 06))
+dart.jul.av.2 <- mean(subset(dart.insitu$AgencyValue,
+                               month(dart.insitu$SampleDateTime) == 07))
+dart.aug.av.2 <- mean(subset(dart.insitu$AgencyValue,
+                               month(dart.insitu$SampleDateTime) == 08))
+dart.sep.av.2 <- mean(subset(dart.insitu$AgencyValue,
+                               month(dart.insitu$SampleDateTime) == 09))
+dart.oct.av.2 <- mean(subset(dart.insitu$AgencyValue,
+                               month(dart.insitu$SampleDateTime) == 10))
+dart.nov.av.2 <- mean(subset(dart.insitu$AgencyValue,
+                               month(dart.insitu$SampleDateTime) == 11))
+dart.dec.av.2 <- mean(subset(dart.insitu$AgencyValue,
+                               month(dart.insitu$SampleDateTime) == 12))
+
+dart.months <- data.frame(insitu.averages = c(dart.jan.av.2, dart.feb.av.2, dart.mar.av.2, dart.apr.av.2,
+                                              dart.may.av.2, dart.jun.av.2, dart.jul.av.2, dart.aug.av.2,
+                                              dart.sep.av.2, dart.oct.av.2, dart.nov.av.2, dart.dec.av.2))
+
+dart.combined <- data.frame(insitu = dart.months, 
+                              satellite = dart.months.av)
+
+dart.combined$satellite.years <- NULL
+
+plot(y = dart.combined$insitu.averages, 
+     x = dart.combined$satellite.averages, main = "Dart In Situ/Satellite Regression", 
+     xlab = "Satellite", ylab = "In Situ",
+     abline(lm(dart.combined$insitu.averages ~ dart.combined$satellite.averages)))
+
+#/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#getting clutha in situ ready for regression
+
+years.to.keep.clutha <- year(subset.clutha.turbidity.2$SampleDateTime) >= 2016
+
+clutha.insitu <- subset.clutha.turbidity.2[years.to.keep.dart,]
+
+clutha.insitu$AgencyValue <- as.numeric(as.character((clutha.insitu$AgencyValue)))
+
+#/////
+
+clutha.jan.av.2 <- mean(subset(clutha.insitu$AgencyValue,
+                             month(clutha.insitu$SampleDateTime) == 01)) 
+clutha.feb.av.2 <- mean(subset(clutha.insitu$AgencyValue,
+                             month(clutha.insitu$SampleDateTime) == 02))
+clutha.mar.av.2 <- mean(subset(clutha.insitu$AgencyValue,
+                             month(clutha.insitu$SampleDateTime) == 03))
+clutha.apr.av.2 <- mean(subset(clutha.insitu$AgencyValue,
+                             month(clutha.insitu$SampleDateTime) == 04))
+clutha.may.av.2 <- mean(subset(clutha.insitu$AgencyValue,
+                             month(clutha.insitu$SampleDateTime) == 05))
+clutha.jun.av.2 <- mean(subset(clutha.insitu$AgencyValue,
+                             month(clutha.insitu$SampleDateTime) == 06))
+clutha.jul.av.2 <- mean(subset(clutha.insitu$AgencyValue,
+                             month(clutha.insitu$SampleDateTime) == 07))
+clutha.aug.av.2 <- mean(subset(clutha.insitu$AgencyValue,
+                             month(clutha.insitu$SampleDateTime) == 08))
+clutha.sep.av.2 <- mean(subset(clutha.insitu$AgencyValue,
+                             month(clutha.insitu$SampleDateTime) == 09))
+clutha.oct.av.2 <- mean(subset(clutha.insitu$AgencyValue,
+                             month(clutha.insitu$SampleDateTime) == 10))
+clutha.nov.av.2 <- mean(subset(clutha.insitu$AgencyValue,
+                             month(clutha.insitu$SampleDateTime) == 11))
+clutha.dec.av.2 <- mean(subset(clutha.insitu$AgencyValue,
+                             month(clutha.insitu$SampleDateTime) == 12))
+
+clutha.months <- data.frame(insitu.averages = c(clutha.jan.av.2, clutha.feb.av.2, clutha.mar.av.2, clutha.apr.av.2,
+                                              clutha.may.av.2, clutha.jun.av.2, clutha.jul.av.2, clutha.aug.av.2,
+                                              clutha.sep.av.2, clutha.oct.av.2, clutha.nov.av.2, clutha.dec.av.2))
+
+clutha.combined <- data.frame(insitu = clutha.months, 
+                            satellite = clutha.months.av)
+
+clutha.combined$satellite.years <- NULL
+
+plot(y = clutha.combined$insitu.averages, 
+     x = clutha.combined$satellite.averages, main = "Clutha In Situ/Satellite Regression", 
+     xlab = "Satellite", ylab = "In Situ",
+     abline(lm(clutha.combined$insitu.averages ~ clutha.combined$satellite.averages)))
+
+#///////////////////////////////////////
+
+summary(lm(clutha.combined$insitu.averages ~ clutha.combined$satellite.averages))
+
+summary(lm(dart.combined$insitu.averages ~ dart.combined$satellite.averages))
+
+summary(lm(rakaia.combined$insitu.averages ~ rakaia.combined$satellite.averages))
+
+#////////////////////////////////////////
+
+#clutha individual plots
+
+plot(y = hawea.lakes$X2, 
+     x = hawea.lakes$X3, main = "Hawea Turbidity (2016-2024)", 
+     xlab = "Years", ylab = "Turbidity (NDTI)",
+     abline(lm(hawea.lakes$X2 ~ hawea.lakes$X3)))
+
+plot(y = wanaka.lakes$X2, 
+     x = wanaka.lakes$X3, main = "Wanaka Turbidity (2016-2024)", 
+     xlab = "Years", ylab = "Turbidity (NDTI)",
+     abline(lm(wanaka.lakes$X2 ~ wanaka.lakes$X3)))
+
+plot(y = dunstan.lakes$X2, 
+     x = dunstan.lakes$X3, main = "Dunstan Turbidity (2016-2024)", 
+     xlab = "Years", ylab = "Turbidity (NDTI)",
+     abline(lm(dunstan.lakes$X2 ~ dunstan.lakes$X3)))
+
+# dart individual plots
+
+plot(y = unknown.lakes$X2, 
+     x = unknown.lakes$X3, main = "Unknown Turbidity (2016-2024)", 
+     xlab = "Years", ylab = "Turbidity (NDTI)",
+     abline(lm(unknown.lakes$X2 ~ unknown.lakes$X3)))
+
+plot(y = wakatipu.lakes$X2, 
+     x = wakatipu.lakes$X3, main = "Wakatipu Turbidity (2016-2024)", 
+     xlab = "Years", ylab = "Turbidity (NDTI)",
+     abline(lm(wakatipu.lakes$X2 ~ wakatipu.lakes$X3)))
+
+# rakaia individual plots
+
+plot(y = coleridge.lakes$X2, 
+     x = coleridge.lakes$X3, main = "Coleridge Turbidity (2016-2024)", 
+     xlab = "Years", ylab = "Turbidity (NDTI)",
+     abline(lm(coleridge.lakes$X2 ~ coleridge.lakes$X3)))
+
+plot(y = lyndon.lakes$X2, 
+     x = lyndon.lakes$X3, main = "Lyndon Turbidity (2020-2024)", 
+     xlab = "Years", ylab = "Turbidity (NDTI)",
+     abline(lm(lyndon.lakes$X2 ~ lyndon.lakes$X3)))
+
+
+#/////////////////////////////////
+
+summary(lm(hawea.lakes$X2 ~ hawea.lakes$X3))
+
+summary(lm(wanaka.lakes$X2 ~ wanaka.lakes$X3))
+
+summary(lm(dunstan.lakes$X2 ~ dunstan.lakes$X3))
+
+summary(lm(unknown.lakes$X2 ~ unknown.lakes$X3))
+
+summary(lm(wakatipu.lakes$X2 ~ wakatipu.lakes$X3))
+
+summary(lm(coleridge.lakes$X2 ~ coleridge.lakes$X3))
+
+summary(lm(lyndon.lakes$X2 ~ lyndon.lakes$X3))
+
+
+
+#//////////////
+
+luggate$SampleDateTime <- mdy_hm(luggate$SampleDateTime)
+
+luggate$AgencyValue <- as.numeric(as.character((luggate$AgencyValue)))
+
+luggate.av.jan <- mean(subset(luggate$AgencyValue,
+                               month(luggate$SampleDateTime) == 01)) 
+luggate.av.feb <- mean(subset(luggate$AgencyValue,
+                               month(luggate$SampleDateTime) == 02))
+luggate.av.mar <- mean(subset(luggate$AgencyValue,
+                               month(luggate$SampleDateTime) == 03))
+luggate.av.apr <- mean(subset(luggate$AgencyValue,
+                               month(luggate$SampleDateTime) == 04))
+luggate.av.may <- mean(subset(luggate$AgencyValue,
+                               month(luggate$SampleDateTime) == 05))
+luggate.av.jun <- mean(subset(luggate$AgencyValue,
+                               month(luggate$SampleDateTime) == 06))
+luggate.av.jul <- mean(subset(luggate$AgencyValue,
+                               month(luggate$SampleDateTime) == 07))
+luggate.av.aug <- mean(subset(luggate$AgencyValue,
+                               month(luggate$SampleDateTime) == 08))
+luggate.av.sep <- mean(subset(luggate$AgencyValue,
+                               month(luggate$SampleDateTime) == 09))
+luggate.av.oct <- mean(subset(luggate$AgencyValue,
+                               month(luggate$SampleDateTime) == 10))
+luggate.av.nov <- mean(subset(luggate$AgencyValue,
+                               month(luggate$SampleDateTime) == 11))
+luggate.av.dec <- mean(subset(luggate$AgencyValue,
+                               month(luggateSampleDateTime) == 12))
+
+
+########/////
+
+luggate$SampleDateTime <- mdy_hm(luggate$SampleDateTime)
+
+luggate$AgencyValue <- as.numeric(as.character((luggate$AgencyValue)))
+
+luggate.av.jan <- mean(subset(luggate$AgencyValue,
+                              month(luggate$SampleDateTime) == 01)) 
+luggate.av.feb <- mean(subset(luggate$AgencyValue,
+                              month(luggate$SampleDateTime) == 02))
+luggate.av.mar <- mean(subset(luggate$AgencyValue,
+                              month(luggate$SampleDateTime) == 03))
+luggate.av.apr <- mean(subset(luggate$AgencyValue,
+                              month(luggate$SampleDateTime) == 04))
+luggate.av.may <- mean(subset(luggate$AgencyValue,
+                              month(luggate$SampleDateTime) == 05))
+luggate.av.jun <- mean(subset(luggate$AgencyValue,
+                              month(luggate$SampleDateTime) == 06))
+luggate.av.jul <- mean(subset(luggate$AgencyValue,
+                              month(luggate$SampleDateTime) == 07))
+luggate.av.aug <- mean(subset(luggate$AgencyValue,
+                              month(luggate$SampleDateTime) == 08))
+luggate.av.sep <- mean(subset(luggate$AgencyValue,
+                              month(luggate$SampleDateTime) == 09))
+luggate.av.oct <- mean(subset(luggate$AgencyValue,
+                              month(luggate$SampleDateTime) == 10))
+luggate.av.nov <- mean(subset(luggate$AgencyValue,
+                              month(luggate$SampleDateTime) == 11))
+luggate.av.dec <- mean(subset(luggate$AgencyValue,
+                              month(luggate$SampleDateTime) == 12))
+
+#//////
+
+miller.balclutha$AgencyValue <- as.numeric(as.character((miller.balclutha$AgencyValue)))
+
+miller.balclutha$SampleDateTime <- mdy_hm(miller.balclutha$SampleDateTime)
+
+miller.balclutha.av.jan <- mean(subset(miller.balclutha$AgencyValue,
+                                       month(miller.balclutha$SampleDateTime) == 01)) 
+miller.balclutha.av.feb <- mean(subset(miller.balclutha$AgencyValue,
+                                       month(miller.balclutha$SampleDateTime) == 02))
+miller.balclutha.av.mar <- mean(subset(miller.balclutha$AgencyValue,
+                                       month(miller.balclutha$SampleDateTime) == 03))
+miller.balclutha.av.apr <- mean(subset(miller.balclutha$AgencyValue,
+                                       month(miller.balclutha$SampleDateTime) == 04))
+miller.balclutha.av.may <- mean(subset(miller.balclutha$AgencyValue,
+                                       month(miller.balclutha$SampleDateTime) == 05))
+miller.balclutha.av.jun <- mean(subset(miller.balclutha$AgencyValue,
+                                       month(miller.balclutha$SampleDateTime) == 06))
+miller.balclutha.av.jul <- mean(subset(miller.balclutha$AgencyValue,
+                                       month(miller.balclutha$SampleDateTime) == 07))
+miller.balclutha.av.aug <- mean(subset(miller.balclutha$AgencyValue,
+                                       month(miller.balclutha$SampleDateTime) == 08))
+miller.balclutha.av.sep <- mean(subset(miller.balclutha$AgencyValue,
+                                       month(miller.balclutha$SampleDateTime) == 09))
+miller.balclutha.av.oct <- mean(subset(miller.balclutha$AgencyValue,
+                                       month(miller.balclutha$SampleDateTime) == 10))
+miller.balclutha.av.nov <- mean(subset(miller.balclutha$AgencyValue,
+                                       month(miller.balclutha$SampleDateTime) == 11))
+miller.balclutha.av.dec <- mean(subset(miller.balclutha$AgencyValue,
+                                       month(miller.balclutha$SampleDateTime) == 12))
+
+clutha.total <- data.frame(luggate = c(luggate.av.jan, luggate.av.feb, luggate.av.mar, luggate.av.apr,
+                                       luggate.av.may, luggate.av.jun, luggate.av.jul, luggate.av.aug,
+                                       luggate.av.sep, luggate.av.oct, luggate.av.nov, luggate.av.dec),
+                           millerbalclutha = c(miller.balclutha.av.jan, miller.balclutha.av.feb, miller.balclutha.av.mar, 
+                                               miller.balclutha.av.apr,
+                                               miller.balclutha.av.may, miller.balclutha.av.jun, miller.balclutha.av.jul,
+                                               miller.balclutha.av.aug,
+                                               miller.balclutha.av.sep, miller.balclutha.av.oct, miller.balclutha.av.nov,
+                                               miller.balclutha.av.dec))
+
+luggate.av <- data.frame(averages = c(luggate.av.jan, luggate.av.feb, luggate.av.mar, luggate.av.apr,
+                                       luggate.av.may, luggate.av.jun, luggate.av.jul, luggate.av.aug,
+                                       luggate.av.sep, luggate.av.oct, luggate.av.nov, luggate.av.dec))
+
+
+summary(lm(clutha.total$millerbalclutha ~ clutha.total$luggate))
+
+plot(x = clutha.total$luggate, y = clutha.total$millerbalclutha, xlab = "Luggate", ylab = "Miller's Flat and Balclutha",
+     main = "Clutha Sampling Sites Regression", abline(lm(clutha.total$millerbalclutha ~ clutha.total$luggate)))
+
+plot(x = luggate$SampleDateTime, y = luggate$AgencyValue, xlab = "Years", ylab = "Turbidity (FNU)",
+     main = "Luggate Bridge Turbidity", abline(lm(luggate$AgencyValue ~ luggate$SampleDateTime)))
+
+plot(x = miller.balclutha$SampleDateTime, y = miller.balclutha$AgencyValue, xlab = "Years", ylab = "Turbidity (FNU)",
+     main = "Miller's Flat/Balclutha Turbidity", abline(lm(miller.balclutha$AgencyValue ~ miller.balclutha$SampleDateTime)))
+
+
+#////////////
+
+glacial <- bind_rows(list(dart.lakes, rakaia.lakes)) %>% group_by(Rivers)
+
+glacial.av.jan <- mean(subset(glacial$X2,
+                              month(glacial$X3) == 01)) 
+glacial.av.feb <- mean(subset(glacial$X2,
+                              month(glacial$X3) == 02))
+glacial.av.mar <- mean(subset(glacial$X2,
+                              month(glacial$X3) == 03))
+glacial.av.apr <- mean(subset(glacial$X2,
+                              month(glacial$X3) == 04))
+glacial.av.may <- mean(subset(glacial$X2,
+                              month(glacial$X3) == 05))
+glacial.av.jun <- mean(subset(glacial$X2,
+                              month(glacial$X3) == 06))
+glacial.av.jul <- mean(subset(glacial$X2,
+                              month(glacial$X3) == 07))
+glacial.av.aug <- mean(subset(glacial$X2,
+                              month(glacial$X3) == 08))
+glacial.av.sep <- mean(subset(glacial$X2,
+                              month(glacial$X3) == 09))
+glacial.av.oct <- mean(subset(glacial$X2,
+                              month(glacial$X3) == 10))
+glacial.av.nov <- mean(subset(glacial$X2,
+                              month(glacial$X3) == 11))
+glacial.av.dec <- mean(subset(glacial$X2,
+                              month(glacial$X3) == 12))
+
+glacial.av <- data.frame(averages = c(glacial.av.jan, glacial.av.feb, glacial.av.mar, glacial.av.apr,
+                         glacial.av.may, glacial.av.jun, glacial.av.jul, glacial.av.aug,
+                         glacial.av.sep, glacial.av.oct, glacial.av.nov, glacial.av.dec))
+
+summary(lm(clutha.months.av$averages ~ glacial.av$averages))
+
+
+plot(x = glacial$X3, y = glacial$X2, xlab = "Years", ylab = "Turbidity (NDTI)",
+     main = "Glacial Lakes Turbidity", abline(lm(glacial$X2 ~ glacial$X3)))
+
+
+plot(x = clutha.months.av$averages, y = glacial.av$averages, xlab = "Non-Glacial", ylab = "Glacial",
+     main = "Glacial & Non-Glacial Lake Avg Comparison", abline(lm(glacial.av$averages ~ clutha.months.av$averages)))
+
+mean(miller.balclutha$AgencyValue)
+
+mean(luggate$AgencyValue)
+
+summary(lm(luggate$AgencyValue ~ luggate$SampleDateTime))
+
+summary(lm(miller.balclutha$AgencyValue ~ miller.balclutha$SampleDateTime))
+
+#///////////////////////////////
+
+summary(lm(rakaia.months$insitu.averages ~ luggate.av$averages))
+
+plot(x = rakaia.months$insitu.averages, y = luggate.av$averages, xlab = "Non-Glacial", ylab = "Glacial",
+     main = "Glacial & Non-Glacial Upstream Comparison", abline(lm(luggate.av$averages ~ rakaia.months$insitu.averages)))
+
+max(subset.rakaia.turbidity.2$AgencyValue)
+
+min(subset.rakaia.turbidity.2$AgencyValue)
+
+luggate$AgencyValue <- as.numeric(as.character((luggate$AgencyValue)))
+
+mean(luggate$AgencyValue)
+
+
+summary(lm(rakaia.months$insitu.averages ~ dart.months$insitu.averages))
+
+plot(x = rakaia.months$insitu.averages, y = dart.months$insitu.averages, xlab = "Glacier", ylab = "Proglacial Lake",
+     main = "Glacier & Proglacial Lake Upstream Comparison", abline(lm(dart.months$insitu.averages ~ rakaia.months$insitu.averages)))
+
+
+View(subset.rakaia.turbidity.2)
+
+plot(x = unknown.df$X3, y = unknown.df$X2, abline(lm(unknown.df$X2 ~ unknown.df$X3)))
+
+plot(x = coleridge.df$X3, y = coleridge.df$X2, abline(lm(coleridge.df$X2 ~ coleridge.df$X3)))
+
+plot(x = wakatipu.df$X3, y = wakatipu.df$X2, abline(lm(wakatipu.df$X2 ~ wakatipu.df$X3)))
+
+plot(x = hawea.df$X3, y = hawea.df$X2, abline(lm(hawea.df$X2 ~ hawea.df$X3)))
+
+plot(x = wanaka.df$X3, y = wanaka.df$X2, abline(lm(wanaka.df$X2 ~ wanaka.df$X3)))
+
+plot(x = dunstan.df$X3, y = dunstan.df$X2, abline(lm(dunstan.df$X2 ~ dunstan.df$X3)))
+
+
+mean(unknown.df$X2)
+mean(wakatipu.df$X2)
+mean(coleridge.df$X2)
+mean(lyndon.df$X2)
+mean(hawea.df$X2)
+mean(wanaka.df$X2)
+mean(dunstan.df$X2)
+
+mean(luggate$AgencyValue)
+
+mean(miller.balclutha$AgencyValue)
+
+mean(subset.dart.turbidity.2$AgencyValue)
