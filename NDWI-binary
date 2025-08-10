@@ -1,0 +1,17 @@
+#This code creates a binary raster of NDWI data generated in Calculate_NDWI.R
+
+# create ndwi binary raster
+
+calc.binary = function(ndwi,values) {
+  ndwi[ndwi > 2.2] = NA
+  ndwi[ndwi <= 0.2] = NA
+  
+  ndwi[ndwi <= 2.2] = 1
+  ndwi[ndwi > 0.2] = 1
+  
+  return(ndwi)
+}
+
+binary = calc.binary(test.ndwi)
+
+ 
